@@ -30,6 +30,7 @@ import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.route.RuleSetCatalog
 import io.nekohasekai.sagernet.route.RuleSets
 import io.nekohasekai.sagernet.ui.ThemedActivity
+import io.nekohasekai.sagernet.widget.applyInsetPadding
 import io.nekohasekai.sagernet.widget.applyListInsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -69,6 +70,9 @@ class RuleSetPickerActivity : ThemedActivity() {
         super.onCreate(savedInstanceState)
         binding = LayoutRuleSetPickerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        // Keep the status bar outside the collapsing region and clip scrolling children below it.
+        binding.root.applyInsetPadding(top = true)
+        binding.appbar.applyInsetPadding(horizontal = true)
         setSupportActionBar(binding.toolbar)
         supportActionBar?.apply {
             setTitle(R.string.rule_set_picker_title)
@@ -83,7 +87,7 @@ class RuleSetPickerActivity : ThemedActivity() {
 
         binding.list.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
         binding.list.adapter = adapter
-        // the app bar pads the status bar itself (ThemedActivity.applyTopInset); the list pads the navigation bar
+        // The root owns the top inset; the list keeps its bottom and side insets.
         binding.list.applyListInsets(ime = true, horizontal = true)
         binding.search.addTextChangedListener { rebuild() }
         onBackPressedDispatcher.addCallback(this) { finishWithResult() }

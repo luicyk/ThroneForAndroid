@@ -28,6 +28,7 @@ import io.nekohasekai.sagernet.databinding.LayoutAppListBinding
 import io.nekohasekai.sagernet.databinding.LayoutAppsItemBinding
 import io.nekohasekai.sagernet.ktx.crossFadeFrom
 import io.nekohasekai.sagernet.utils.PackageCache
+import io.nekohasekai.sagernet.widget.applyInsetPadding
 import io.nekohasekai.sagernet.widget.applyListInsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -193,6 +194,9 @@ class AppListActivity : ThemedActivity() {
 
         binding = LayoutAppListBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        // Keep the status bar outside the collapsing region and clip scrolling children below it.
+        binding.root.applyInsetPadding(top = true)
+        binding.appbar.applyInsetPadding(horizontal = true)
 
         binding.appPlaceholder.openSettings.setOnClickListener {
             try {
@@ -220,7 +224,7 @@ class AppListActivity : ThemedActivity() {
         binding.list.itemAnimator = DefaultItemAnimator()
         binding.list.adapter = appsAdapter
 
-        // the app bar pads the status bar itself (ThemedActivity.applyTopInset); the list pads the navigation bar
+        // The root owns the top inset; the list keeps its bottom and side insets.
         binding.list.applyListInsets(ime = true, horizontal = true)
 
         binding.search.addTextChangedListener { refilter() }

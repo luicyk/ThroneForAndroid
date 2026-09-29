@@ -16,9 +16,9 @@
 
 ## 3. legacy 界面状态栏空间固定（规避 material #3404）
 
-- [ ] 3.1 修复真机回归：在 `layout_apps.xml`、`layout_app_list.xml`、`layout_rule_set_picker.xml` 的 root `CoordinatorLayout` 设主题色背景及 `clipToPadding="true"`，header 恢复 `?attr/actionBarSize` 顶部占位；保留已移除的 `fitsSystemWindows`/`statusBarForeground`，验证三布局改动一致且头部模式控件可见
-- [ ] 3.2 在 `AppManagerActivity.kt`、`AppListActivity.kt`、`RuleSetPickerActivity.kt` 上让根容器 `applyInsetPadding(top = true)` 固定并裁剪状态栏空间、让 AppBarLayout `applyInsetPadding(horizontal = true)` 覆盖通用顶部 inset 监听器、保持列表侧边/底部 inset；验证三处模式一致且没有双份顶部 inset
-- [ ] 3.3 对照 spec 复核初始头部无遮挡、滚动头部不进入状态栏及其余 legacy 界面，运行 `openspec validate fix-ui-glitches` 与不依赖 Android SDK 的布局静态解析；真机行为以 3.5 的验证结果为准，不以静态推断代替
+- [x] 3.1 修复真机回归：在 `layout_apps.xml`、`layout_app_list.xml`、`layout_rule_set_picker.xml` 的 root `CoordinatorLayout` 设主题色背景及 `clipToPadding="true"`，header 恢复 `?attr/actionBarSize` 顶部占位；保留已移除的 `fitsSystemWindows`/`statusBarForeground`。静态验证：三布局 XML 属性一致且占位与 Toolbar 高度采用同一属性；实际控件无遮挡待 3.5 真机确认
+- [x] 3.2 在 `AppManagerActivity.kt`、`AppListActivity.kt`、`RuleSetPickerActivity.kt` 上让根容器 `applyInsetPadding(top = true)` 固定并裁剪状态栏空间、让 AppBarLayout `applyInsetPadding(horizontal = true)` 覆盖通用顶部 inset 监听器、保持列表侧边/底部 inset；静态验证：三处代码模式一致且没有双份顶部 inset
+- [x] 3.3 对照 spec 静态复核初始头部间距、滚动头部裁剪与其余 legacy 界面，运行 `openspec validate fix-ui-glitches --strict` 与不依赖 Android SDK 的布局静态解析；真机行为以 3.5 的验证结果为准，不以静态推断代替
 - [ ] 3.4 提交本批次改动（由用户执行 git 提交，批次独立可回退）
 - [ ] 3.5 CI/真机验证阶段：CI 同 `ci.yml` `build` job；真机场景：分应用代理初始展开头部（模式开关、系统应用选项、搜索框均可见），用力上滑/下滑（fling）各一次并录屏或连拍，缓慢滚动折叠/展开头部各一次，横屏重复 fling；应用列表选择与规则集选择界面各 fling 一次。预期：状态栏全程主题色填充且保留固定空间，卡片/文字不覆盖状态栏图标，头部无遮挡、折叠/展开正常，横屏侧边无内容被导航栏遮挡。需回传证据：初始与下拉后的分应用代理整屏截图/录屏，以及其他两个界面的 fling 截图和 CI `build` 结果；若仍有重叠则在本批次内修复重验
 

@@ -6,15 +6,15 @@
 
 - **空状态块**（`app/src/main/res/layout/layout_profile_list.xml`）：`ScrollView`（`@id/profiles_empty`，`fillViewport="true"`）内唯一子 `LinearLayout` 设了 `android:layout_gravity="center"` + `android:gravity="center_horizontal"` + 不对称 padding（top 24dp / bottom 104dp）。`ScrollView` 忽略子 view 的 `layout_gravity`；`fillViewport` 又把子高拉到视口高度，内容便顶对齐贴在上部（即用户看到的 top middle）。`ProfileListFragment` 对该 ScrollView 调 `applyListInsets()`（bottom + horizontal inset，`clipToPadding=false`）。
 - **配置切换栏**（`app/src/main/res/layout/layout_group_list.xml` 的 `@id/group_tab`）：`TabLayout`，`layout_height="wrap_content"`，文字样式来自全局 `tabStyle` → [`Widget.SagerNet.TabLayout`](app/src/main/res/values/themes.xml:157)（`tabTextAppearance` = [`TextAppearance.SagerNet.Button`](app/src/main/res/values/themes.xml:150)，14sp）。`TextAppearance.SagerNet.Button` 同时被 MaterialButton、对话框按钮、snackbar 动作共用，不能整体放大。
-- **legacy 界面**：`layout_apps.xml`（`AppManagerActivity` 分应用代理）、`layout_app_list.xml`（`AppListActivity`）、`layout_rule_set_picker.xml`（`RuleSetPickerActivity`）共享同一套 T4A v1.x 折叠头部模式：root `CoordinatorLayout` / `AppBarLayout` / `CollapsingToolbarLayout` 三层 `fitsSystemWindows="true"`，`AppBarLayout` 带 `app:statusBarForeground="?attr/colorPrimary"`，header 硬编码 `paddingTop="56dp"` 顶开状态栏；三个 Activity 都以注释 "the app bar fits system windows (status bar foreground); the list pads the navigation bar" 配 `binding.list.applyListInsets(ime = true, horizontal = false)` + toolbar/header 的 `applyInsetPadding(horizontal = true)`。
+- **legacy 界面改动前的基线**：`layout_apps.xml`（`AppManagerActivity` 分应用代理）、`layout_app_list.xml`（`AppListActivity`）、`layout_rule_set_picker.xml`（`RuleSetPickerActivity`）共享同一套 T4A v1.x 折叠头部模式：root `CoordinatorLayout` / `AppBarLayout` / `CollapsingToolbarLayout` 三层 `fitsSystemWindows="true"`，`AppBarLayout` 带 `app:statusBarForeground="?attr/colorPrimary"`，header 硬编码 `paddingTop="56dp"` 为置顶工具栏让出高度（不是状态栏 inset）；三个 Activity 都以注释 "the app bar fits system windows (status bar foreground); the list pads the navigation bar" 配 `binding.list.applyListInsets(ime = true, horizontal = false)` + toolbar/header 的 `applyInsetPadding(horizontal = true)`。
 - **已知上游 bug**：material-components-android [#3404](https://github.com/material-components/material-components-android/issues/3404)（"Status bar foreground detaches when flinging"）——`statusBarForeground` 在 fling 时与 AppBarLayout 脱开下移，与用户截图一致；该 issue 截至 2026-05 仍 Open，本仓库 `com.google.android.material:material:1.8.0` 受影响。
-- **仓库既有模式**：非折叠界面统一用 [`AppBarLayout.applyTopInset()`](app/src/main/java/io/nekohasekai/sagernet/widget/WindowInsetsListeners.kt:137)（top + horizontal inset padding，insets 不消费），由 [`ThemedActivity.onContentChanged`](app/src/main/java/io/nekohasekai/sagernet/ui/ThemedActivity.kt:66) 对 `R.id.appbar` 自动安装。三个 legacy 布局的 AppBarLayout 同为 `@id/appbar`，改掉 XML 后自动走此路径，无需 Activity 级 inset 代码。
+- **仓库既有模式与修正后例外**：非折叠界面用 [`AppBarLayout.applyTopInset()`](app/src/main/java/io/nekohasekai/sagernet/widget/WindowInsetsListeners.kt:137)（top + horizontal inset padding，insets 不消费），由 [`ThemedActivity.onContentChanged`](app/src/main/java/io/nekohasekai/sagernet/ui/ThemedActivity.kt:66) 对 `R.id.appbar` 自动安装。三个 legacy 布局虽然也自动走此路径，但折叠子内容会绘制进应用栏顶部 padding；因此在对应 Activity 的 `setContentView` 之后用 `applyInsetPadding(horizontal = true)` 覆盖该监听器，再将 top inset 应用到不滚动的根容器。
 
 ## Goals / Non-Goals
 
 **Goals:**
 - 三个问题各有一个最小、可独立审查与回退的修复；行为契约落在 specs/ui-layout。
-- 问题 3 的修复采用仓库已有 inset 模式（`applyTopInset`），让 legacy 界面与其余界面的状态栏处理同构，而不是引入新的 hack。
+- 问题 3 复用仓库已有的 `applyInsetPadding` 监听机制，但把顶部 inset 放在固定根容器，避免可折叠应用栏的顶部 padding 被滚动内容覆盖。
 - 全部改动限于 Android UI 资源/布局与少量 Activity inset 调用；不动核心、构建链、工具布局。
 
 **Non-Goals:**
