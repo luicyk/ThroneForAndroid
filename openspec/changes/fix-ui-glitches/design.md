@@ -36,19 +36,21 @@
    - 备选：放大 `TextAppearance.SagerNet.Button`——按钮/对话框共用，波及面失控；被否。
    - 40dp/16sp 是"稍微小一点/稍大一点"的量化解析，真机观感可在验证阶段微调（Risks 记录）。
 
-3. **legacy 界面：从 `fitsSystemWindows` + `statusBarForeground` 迁移到 `applyTopInset()` 模式，绕开上游 #3404。**
-   三个布局各做同样四处改动：root `CoordinatorLayout`、`AppBarLayout`、`CollapsingToolbarLayout` 去掉 `fitsSystemWindows`；`AppBarLayout` 去掉 `app:statusBarForeground`；header 去掉硬编码 `paddingTop="56dp"`。状态栏空间改由 `ThemedActivity.onContentChanged` 自动安装的 `applyTopInset()` 提供（AppBarLayout top + horizontal inset padding，背景色自然填满状态栏区域，fling 时没有任何动态绘制的 foreground 可脱开）。Activity 侧同步调整：toolbar/header 的 `applyInsetPadding(horizontal = true)` 移除（AppBarLayout 已含 horizontal padding，否则双倍侧距），`binding.list.applyListInsets(ime = true, horizontal = false)` 改 `horizontal = true`（root 不再消费 horizontal inset），注释同步更新。
+3. **legacy 界面：状态栏 inset 放在不滚动的根容器，修复真机回归。**
+   首次迁移把 `AppBarLayout` 的 `fitsSystemWindows`/`statusBarForeground` 移除、改用 `ThemedActivity.onContentChanged` 的 `applyTopInset()`，并删掉 header 的 `paddingTop="56dp"`。真机发现两处回归：第一排模式控件被置顶工具栏遮挡；下拉后折叠头部白色卡片绘制进透明状态栏。上游 material-components-android [#4867](https://github.com/material-components/material-components-android/issues/4867) 确认给可折叠 AppBarLayout 加顶部 padding 不能阻止头部绘制进状态栏；先前假设不成立。
+   三个布局的 root `CoordinatorLayout` 增加主题色背景和 `clipToPadding="true"`；三个 Activity 对 `binding.root` 调用 `applyInsetPadding(top = true)`，由固定根容器预留状态栏空间并裁剪超出顶部边界的折叠内容；对 `binding.appbar` 调用 `applyInsetPadding(horizontal = true)`，覆盖 `ThemedActivity.onContentChanged` 自动注册的顶部 inset 监听器（仍保留侧边导航栏的安全间距），避免双份顶部 inset。恢复三个 header 的顶部占位，采用 `?attr/actionBarSize` 与其置顶 Toolbar 的高度一致（取代原本固定的 56dp）；列表仍用 `applyListInsets(ime = true, horizontal = true)` 处理底部与横向 inset。根容器不消费 insets，列表照常接收。
    - 备选：升级 material 到修复版——#3404 至今 Open，无修复版本可升；被否。
    - 备选：列表 `overScrollMode="never"`——#3404 是 fling settle 时 foreground 绘制位置问题，与 over-scroll 效果开关无关，且损失 over-scroll 反馈；被否。
-   - 备选：状态栏区域自绘一个色块 View 兜底——增加 hack 层且折叠几何仍留在问题模式里；被否。
-   - 代价：折叠头部的几何从"Collapse 内容含 56dp 状态栏占位 + foreground"变为"AppBarLayout padding 固定占位 + 内容在其下折叠"，折叠/展开视觉需真机确认等价（Risks 记录）。
+   - 备选：保留 AppBarLayout 顶部 padding，仅给根容器加背景色——只能遮盖窗口背景，无法防止头部文字压在状态栏图标上；被真机证据否定。
+   - 备选：把固定 Toolbar 和滚动头部拆成两个 AppBarLayout——上游 #4867 推荐，可从结构上分离；但三处界面需重排布局/滚动行为，先采用根容器裁剪的最小自洽修复。
+   - 代价：根容器裁剪禁止列表在状态栏背后绘制，这三个旧界面不再有状态栏区域的 edge-to-edge 内容效果；符合固定空间要求。
 
 ## Risks / Trade-offs
 
 - [空状态居中区域含 bottom inset，中心比纯屏幕中心略高（约半个导航栏高度）] → 视觉差异在数 dp 量级，真机确认可接受；若要求严格屏幕中心，可在验证阶段把 `applyListInsets()` 换成对称 inset 处理，spec 场景不变。
 - [40dp / 16sp 的"稍微"量级因屏幕密度/字体缩放观感不同] → 真机截图核对，不符即微调数值；spec 以"约"表述，改动不越出行为边界。
-- [legacy 布局迁移后折叠/展开几何与 56dp 硬编码时代的像素级差异] → 真机验证场景覆盖折叠/展开与横屏；若折叠异常，回退方案是恢复 `fitsSystemWindows` 但去掉 `statusBarForeground`、以 root 固定 top padding 顶替（同批次内调整，不跨批次累积）。
-- [Material AppBarLayout 在 padding 模式下与 CollapsingToolbarLayout 的组合未在本仓库其他界面出现过（其他界面均为非折叠 appbar）] → 该组合是 Material 文档支持的标准用法；风险由问题 3 的真机 fling/折叠验证批次兜底。
+- [根容器裁剪是否在所有 Android 版本及机型都能隔离折叠头部] → 批次 3 真机覆盖初始/下拉/折叠/横屏；不通过则停留本批次，考虑上游推荐的固定工具栏与可折叠头部分离方案，不继续收尾。
+- [工具栏高度随屏幕方向和设备变动] → header 顶部占位引用 `?attr/actionBarSize`，确保与实际 Toolbar 配套，而不是硬编码 56dp。
 - [三个 Activity 的 inset 调用调整若漏改会出双倍 padding 或列表贴边] → tasks 中列为同批次必改项，验证场景含横竖屏侧边/底部导航栏检查。
 
 ## Migration Plan

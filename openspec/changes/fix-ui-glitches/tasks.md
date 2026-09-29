@@ -16,11 +16,11 @@
 
 ## 3. legacy 界面状态栏空间固定（规避 material #3404）
 
-- [x] 3.1 修改 `app/src/main/res/layout/layout_apps.xml`、`layout_app_list.xml`、`layout_rule_set_picker.xml`：root `CoordinatorLayout`、`AppBarLayout`、`CollapsingToolbarLayout` 去掉 `fitsSystemWindows`，`AppBarLayout` 去掉 `app:statusBarForeground`，header 去掉硬编码 `paddingTop="56dp"`；状态栏空间由 `ThemedActivity.onContentChanged` 自动安装的 `applyTopInset()` 提供。验证：三布局 diff 结构一致、`@id/appbar` 保留
-- [x] 3.2 同步调整 `AppManagerActivity.kt`、`AppListActivity.kt`、`RuleSetPickerActivity.kt`：移除 toolbar/header 的 `applyInsetPadding(horizontal = true)`（AppBarLayout 已含 horizontal padding），`binding.list.applyListInsets(ime = true, horizontal = false)` 改 `horizontal = true`，更新原 "the app bar fits system windows (status bar foreground)" 注释。验证：diff 确认三处代码模式一致、无其他 inset 调用残留双份
-- [x] 3.3 对照 spec 的"legacy 界面状态栏空间固定"requirement 复核三个场景（fling 顶部不动、其他 legacy 界面同样固定、折叠头部滚动正常），并运行 `openspec validate fix-ui-glitches` 通过
+- [ ] 3.1 修复真机回归：在 `layout_apps.xml`、`layout_app_list.xml`、`layout_rule_set_picker.xml` 的 root `CoordinatorLayout` 设主题色背景及 `clipToPadding="true"`，header 恢复 `?attr/actionBarSize` 顶部占位；保留已移除的 `fitsSystemWindows`/`statusBarForeground`，验证三布局改动一致且头部模式控件可见
+- [ ] 3.2 在 `AppManagerActivity.kt`、`AppListActivity.kt`、`RuleSetPickerActivity.kt` 上让根容器 `applyInsetPadding(top = true)` 固定并裁剪状态栏空间、让 AppBarLayout `applyInsetPadding(horizontal = true)` 覆盖通用顶部 inset 监听器、保持列表侧边/底部 inset；验证三处模式一致且没有双份顶部 inset
+- [ ] 3.3 对照 spec 复核初始头部无遮挡、滚动头部不进入状态栏及其余 legacy 界面，运行 `openspec validate fix-ui-glitches` 与不依赖 Android SDK 的布局静态解析；真机行为以 3.5 的验证结果为准，不以静态推断代替
 - [ ] 3.4 提交本批次改动（由用户执行 git 提交，批次独立可回退）
-- [ ] 3.5 CI/真机验证阶段：CI 同 `ci.yml` `build` job；真机场景：分应用代理界面用力上滑/下滑（fling）各一次并录屏或连拍、缓慢滚动折叠/展开头部各一次、横屏重复 fling 一次；应用列表选择（路由内选应用）与规则集选择界面各 fling 一次。预期：顶部状态栏区域全程主题色填充，无白色/窗口背景露出、头部不随 fling 下移，折叠/展开正常，横屏侧边无内容被导航栏遮挡。需回传证据：分应用代理 fling 录屏（或连拍截图）+ 另两个界面的 fling 截图；若折叠几何与迁移前有可见差异或折叠异常，回传录屏并在本批次内按 design 的回退方案调整重验
+- [ ] 3.5 CI/真机验证阶段：CI 同 `ci.yml` `build` job；真机场景：分应用代理初始展开头部（模式开关、系统应用选项、搜索框均可见），用力上滑/下滑（fling）各一次并录屏或连拍，缓慢滚动折叠/展开头部各一次，横屏重复 fling；应用列表选择与规则集选择界面各 fling 一次。预期：状态栏全程主题色填充且保留固定空间，卡片/文字不覆盖状态栏图标，头部无遮挡、折叠/展开正常，横屏侧边无内容被导航栏遮挡。需回传证据：初始与下拉后的分应用代理整屏截图/录屏，以及其他两个界面的 fling 截图和 CI `build` 结果；若仍有重叠则在本批次内修复重验
 
 ## 4. 收尾核对
 
