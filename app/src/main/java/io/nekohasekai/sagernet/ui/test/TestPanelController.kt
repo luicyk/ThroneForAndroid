@@ -211,11 +211,14 @@ class TestPanelController(
         if (side) fillSlot()
         wire()
         applyExpanded()
-        // Posted: the listener runs inside the layout pass and the callback may re-layout the list.
-        root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> root.post(::reportHeight) }
+        // Posted: the listener runs inside the layout pass and the callback may re-layout the list. One Runnable for
+        // both listeners: a method reference allocates a fresh instance per evaluation, which defeats the
+        // identity check post() does.
+        val postHeight = Runnable { reportHeight() }
+        root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> root.post(postHeight) }
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             bottomInset = insets.bars().bottom
-            root.post(::reportHeight)
+            root.post(postHeight)
             insets
         }
         // Every frame: the stats bar and the FAB move without any layout of this hierarchy.

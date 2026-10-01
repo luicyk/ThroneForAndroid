@@ -22,6 +22,7 @@ import io.nekohasekai.sagernet.databinding.LayoutLanShareBinding
 import io.nekohasekai.sagernet.databinding.LayoutLanShareClientBinding
 import io.nekohasekai.sagernet.databinding.LayoutLanSharePlanBinding
 import io.nekohasekai.sagernet.utils.LanClients
+import io.nekohasekai.sagernet.ui.test.TestFormat
 import io.nekohasekai.sagernet.widget.applyInsetPadding
 import java.net.Inet4Address
 import kotlinx.coroutines.Dispatchers
@@ -294,17 +295,13 @@ class LanShareActivity : ThemedActivity() {
         }
     }
 
+    /**
+     * Byte counts go through [TestFormat.bytes], which delegates to [android.text.format.Formatter] so the unit and
+     * the digits follow the device locale; the first sample has nothing to difference against.
+     */
     private fun formatRate(bytes: Long?): String {
         if (bytes == null || bytes < 0) return "-"
-        val units = arrayOf("B", "KB", "MB", "GB")
-        var value = bytes.toDouble()
-        var unit = 0
-        while (value >= 1024 && unit < units.size - 1) {
-            value /= 1024
-            unit++
-        }
-        return if (unit == 0) String.format("%.0f %s", value, units[unit])
-        else String.format("%.2f %s", value, units[unit])
+        return TestFormat.bytes(this, bytes)
     }
 
     private fun copy(message: String, text: String) {
