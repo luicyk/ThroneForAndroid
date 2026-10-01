@@ -4,26 +4,25 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
-import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.switchmaterial.SwitchMaterial
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.SagerNet
+import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.SettingsRegistry
 import io.nekohasekai.sagernet.databinding.LayoutLanShareBinding
-import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.widget.applyInsetPadding
+import java.net.Inet4Address
+import java.net.NetworkInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.lifecycle.lifecycleScope
-import java.net.Inet4Address
-import java.net.NetworkInterface
 
 /**
  * LAN Sharing: one screen for turning the mixed inbound's bind address off loopback and for showing the addresses other
@@ -42,12 +41,15 @@ class LanShareActivity : ThemedActivity() {
     private lateinit var binding: LayoutLanShareBinding
     private lateinit var allowLan: SwitchMaterial
     private lateinit var status: TextView
-    private lateinit var container: android.widget.LinearLayout
+    private lateinit var container: LinearLayout
     private lateinit var noAddress: TextView
     private lateinit var warning: TextView
     private lateinit var offHint: TextView
     private lateinit var copyButton: MaterialButton
     private lateinit var copied: TextView
+
+    /** Guards the change listener: [render] sets the switch, which would otherwise look like a user edit. */
+    private var sharing = false
 
     /** The addresses currently listed, for the clipboard. */
     private var shareLines: List<String> = emptyList()
@@ -76,8 +78,11 @@ class LanShareActivity : ThemedActivity() {
         allowLan.setOnCheckedChangeListener { _, checked ->
             DataStore.inboundAddress =
                 if (checked) SettingsRegistry.LAN_ADDRESS else SettingsRegistry.LOOPBACK_ADDRESS
-            needReload()
-            render()
+            // The listener fires while rendering too, so only act on a real change.
+            if (checked != sharing) {
+                render()
+                SagerNet.reloadService()
+            }
         }
         copyButton.setOnClickListener { copyAddresses() }
     }
@@ -88,9 +93,9 @@ class LanShareActivity : ThemedActivity() {
     }
 
     private fun render() {
-        val sharing = DataStore.allowLanAccess
+        sharing = DataStore.allowLanAccess
         val port = DataStore.inboundSocksPort
-        val connected = DataStore.serviceState == io.nekohasekai.sagernet.bg.BaseService.State.Connected
+        val connected = DataStore.serviceState == BaseService.State.Connected
 
         allowLan.isChecked = sharing
         // Risk and help copy only matter while the inbound is reachable from the network.

@@ -29,8 +29,17 @@ import kotlin.math.abs
 /** The mixed inbound (Basic Settings › Inbound Settings) plus the Android HTTP proxy bypass list. */
 class InboundSettingsFragment : SettingsScreenFragment(R.xml.settings_inbound) {
 
+    /** The LAN screen changes inboundAddress behind our back; bind() only runs once. */
+    private var lanShareEntry: Preference? = null
+
     override fun beforeInflate() {
         DataStore.initGlobal()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        lanShareEntry?.let { updateLanShareSummary(it) }
+        pref<SwitchPreference>(KEY_ALLOW_LAN).isChecked = DataStore.allowLanAccess
     }
 
     override fun bind() {
@@ -62,10 +71,7 @@ class InboundSettingsFragment : SettingsScreenFragment(R.xml.settings_inbound) {
             startActivity(LanShareActivity.intent(requireContext()))
             true
         }
-        updateLanShareSummary(lanShare)
-        allowLan.registerOnSharedPreferenceChangeListener(object : android.content.SharedPreferences.OnSharedPreferenceChangeListener {
-            override fun onSharedPreferenceChanged(sp: android.content.SharedPreferences?, key: String?) = updateLanShareSummary(lanShare)
-        })
+        lanShareEntry = lanShare
 
         fun updateMixedState(disabled: Boolean) {
             for (p in listOf(port, randomPort, allowLan, auth, user, pass, httpProxyBypass)) p.isEnabled = !disabled
