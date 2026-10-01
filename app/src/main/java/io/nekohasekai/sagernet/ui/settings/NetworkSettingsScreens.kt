@@ -16,76 +16,41 @@ import io.nekohasekai.sagernet.database.preference.EditTextPreferenceModifiers
 import io.nekohasekai.sagernet.group.RemoteRouteUpdater
 import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.ui.AppManagerActivity
-import io.nekohasekai.sagernet.ui.GroupSettingsActivity
 import io.nekohasekai.sagernet.ui.LanShareActivity
 import io.nekohasekai.sagernet.ui.MainActivity
 import io.nekohasekai.sagernet.ui.route.RouteQuickSwitch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import moe.matsuri.nb4a.ui.EditConfigPreference
 import kotlin.math.abs
 
-/** The mixed inbound (Basic Settings › Inbound Settings) plus the Android HTTP proxy bypass list. */
+/**
+ * The mixed inbound toggle plus the Android HTTP proxy bypass list. The port, the LAN switch, the credentials and the
+ * custom inbound JSON live on the LAN sharing screen, where the bind address and the address to dial sit next to them.
+ */
 class InboundSettingsFragment : SettingsScreenFragment(R.xml.settings_inbound) {
-
-    /** The LAN screen changes inboundAddress behind our back; bind() only runs once. */
-    private var lanShareEntry: Preference? = null
 
     override fun beforeInflate() {
         DataStore.initGlobal()
     }
 
-    override fun onResume() {
-        super.onResume()
-        lanShareEntry?.let { updateLanShareSummary(it) }
-        pref<SwitchPreference>(KEY_ALLOW_LAN).isChecked = DataStore.allowLanAccess
-    }
-
     override fun bind() {
-        val port = pref<EditTextPreference>(SettingsRegistry.INBOUND_SOCKS_PORT.key)
-        val randomPort = pref<SwitchPreference>(SettingsRegistry.RANDOM_INBOUND_PORT.key)
-        val allowLan = pref<SwitchPreference>(KEY_ALLOW_LAN)
-        val auth = pref<SwitchPreference>(SettingsRegistry.INBOUND_AUTH.key)
-        val user = pref<EditTextPreference>(SettingsRegistry.INBOUND_USER.key)
-        val pass = pref<EditTextPreference>(SettingsRegistry.INBOUND_PASS.key)
         val httpProxyBypass = pref<EditTextPreference>(Key.HTTP_PROXY_BYPASS)
+        val disable = pref<SwitchPreference>(SettingsRegistry.DISABLE_MIXED_INBOUND.key)
+        val lanShare = pref<Preference>(KEY_LAN_SHARE)
 
-        checkText(port.key, R.string.invalid_port, valid = SettingValidators::isPort)
-        port.setOnBindEditTextListener(EditTextPreferenceModifiers.Port)
-        pass.summaryProvider = GroupSettingsActivity.PasswordSummaryProvider
         httpProxyBypass.setOnBindEditTextListener(EditTextPreferenceModifiers.Hosts)
         httpProxyBypass.summaryProvider = LinesSummaryProvider(maxLines = 1)
-        pref<EditConfigPreference>(SettingsRegistry.CUSTOM_INBOUND.key).useConfigStore(SettingsRegistry.CUSTOM_INBOUND.key)
+        httpProxyBypass.isEnabled = !DataStore.disableMixedInbound
 
-        allowLan.isChecked = DataStore.allowLanAccess
-        allowLan.setOnPreferenceChangeListener { _, newValue ->
-            DataStore.inboundAddress = if (newValue as Boolean) SettingsRegistry.LAN_ADDRESS else SettingsRegistry.LOOPBACK_ADDRESS
-            needReload()
-            true
-        }
-
-        // The LAN screen edits the same inboundAddress, so its summary has to follow the switch here.
-        val lanShare = pref<Preference>(KEY_LAN_SHARE)
         lanShare.setOnPreferenceClickListener {
             startActivity(LanShareActivity.intent(requireContext()))
             true
         }
-        lanShareEntry = lanShare
+        lanShare.summary = lanShareSummary()
+        lanShare.isEnabled = !DataStore.disableMixedInbound
 
-        fun updateMixedState(disabled: Boolean) {
-            for (p in listOf(port, randomPort, allowLan, auth, user, pass, httpProxyBypass)) p.isEnabled = !disabled
-            if (disabled) {
-                port.summaryProvider = null
-                port.summary = getString(R.string.mixed_inbound_disabled)
-            } else {
-                port.summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
-            }
-            user.isEnabled = !disabled && auth.isChecked
-            pass.isEnabled = !disabled && auth.isChecked
-        }
-        updateMixedState(DataStore.disableMixedInbound)
-        pref<SwitchPreference>(SettingsRegistry.DISABLE_MIXED_INBOUND.key).setOnPreferenceChangeListener { _, newValue ->
+        disable.setOnPreferenceChangeListener { _, newValue ->
             val disabled = newValue as Boolean
             if (disabled && DataStore.serviceMode == Key.MODE_PROXY) {
                 Toast.makeText(
@@ -94,31 +59,31 @@ class InboundSettingsFragment : SettingsScreenFragment(R.xml.settings_inbound) {
                     Toast.LENGTH_LONG
                 ).show()
             }
-            updateMixedState(disabled)
+            httpProxyBypass.isEnabled = !disabled
+            lanShare.isEnabled = !disabled
             needReload()
             true
         }
-        auth.setOnPreferenceChangeListener { _, newValue ->
-            user.isEnabled = newValue as Boolean
-            pass.isEnabled = newValue
-            needReload()
-            true
-        }
-        reloadOn(randomPort.key, user.key, pass.key, httpProxyBypass.key)
+        reloadOn(Key.HTTP_PROXY_BYPASS)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // The LAN screen edits the port and the bind address, so this entry has to be re-read on the way back.
+        pref<Preference>(KEY_LAN_SHARE).summary = lanShareSummary()
+        pref<EditTextPreference>(Key.HTTP_PROXY_BYPASS).isEnabled = !DataStore.disableMixedInbound
+        pref<SwitchPreference>(SettingsRegistry.DISABLE_MIXED_INBOUND.key)
+            .isChecked = DataStore.disableMixedInbound
+    }
+
+    private fun lanShareSummary(): String = if (DataStore.allowLanAccess) {
+        getString(R.string.lan_share_summary_on, DataStore.inboundSocksPort)
+    } else {
+        getString(R.string.lan_share_summary_off)
     }
 
     private companion object {
-        const val KEY_ALLOW_LAN = "inboundAllowLan"
         const val KEY_LAN_SHARE = "lanShare"
-    }
-
-    /** Shows the current sharing state on the entry that opens the LAN screen. */
-    private fun updateLanShareSummary(pref: Preference) {
-        pref.summary = if (DataStore.allowLanAccess) {
-            getString(R.string.lan_share_summary_on, DataStore.inboundSocksPort)
-        } else {
-            getString(R.string.lan_share_summary_off)
-        }
     }
 }
 

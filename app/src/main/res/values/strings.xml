@@ -1760,6 +1760,12 @@
 
     <!-- LAN sharing screen -->
     <string name="lan_share_title">LAN sharing</string>
+    <string name="lan_share_custom_empty">No custom inbound; the mixed inbound is generated</string>
+    <string name="lan_share_custom_present">Custom JSON, no inbounds listed</string>
+    <plurals name="lan_share_custom_count">
+        <item quantity="one">%1$d custom inbound</item>
+        <item quantity="other">%1$d custom inbounds</item>
+    </plurals>
     <string name="lan_share_open_hint">Show the address to use on the other device</string>
     <string name="lan_share_headline_detail">Port %1$d · Auth: %2$s</string>
     <string name="lan_share_summary_off">Sharing off</string>

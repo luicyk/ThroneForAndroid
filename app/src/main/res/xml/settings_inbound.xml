@@ -7,53 +7,19 @@
             app:summary="@string/disable_mixed_inbound_sum"
             app:title="@string/disable_mixed_inbound" />
         <EditTextPreference
-            app:icon="@drawable/ic_maps_directions_boat"
-            app:key="inbound_socks_port"
-            app:title="@string/port_proxy"
-            app:useSimpleSummaryProvider="true" />
-        <SwitchPreference
-            app:key="random_inbound_port"
-            app:summary="@string/random_inbound_port_sum"
-            app:title="@string/random_inbound_port" />
-        <SwitchPreference
-            app:icon="@drawable/ic_baseline_nat_24"
-            app:key="inboundAllowLan"
-            app:persistent="false"
-            app:summary="@string/allow_access_sum"
-            app:title="@string/allow_access" />
-        <EditTextPreference
             app:dialogMessage="@string/http_proxy_bypass_dialog_message"
-            app:icon="@drawable/ic_baseline_domain_24"
+            app:icon="@drawable/ic_maps_directions_boat"
             app:key="httpProxyBypass"
             app:title="@string/http_proxy_bypass" />
+    </PreferenceCategory>
+
+    <!-- The port, the LAN switch, the credentials and the custom inbound JSON moved to the LAN sharing screen, so
+         the bind address, the address to dial and the port stay visible together. -->
+    <PreferenceCategory app:title="@string/lan_share_title">
         <Preference
             app:icon="@drawable/ic_social_share"
             app:key="lanShare"
             app:summary="@string/lan_share_open_hint"
             app:title="@string/lan_share_title" />
-    </PreferenceCategory>
-
-    <PreferenceCategory app:title="@string/cag_authentication">
-        <SwitchPreference
-            app:icon="@drawable/ic_baseline_lock_24"
-            app:key="inbound_auth"
-            app:summary="@string/inbound_auth_sum"
-            app:title="@string/inbound_auth" />
-        <EditTextPreference
-            app:key="inbound_user"
-            app:title="@string/username"
-            app:useSimpleSummaryProvider="true" />
-        <EditTextPreference
-            app:key="inbound_pass"
-            app:title="@string/password" />
-    </PreferenceCategory>
-
-    <PreferenceCategory app:title="@string/cag_advanced">
-        <moe.matsuri.nb4a.ui.EditConfigPreference
-            app:icon="@drawable/ic_baseline_layers_24"
-            app:jsonAllowEmpty="true"
-            app:jsonSchema="#"
-            app:key="custom_inbound"
-            app:title="@string/custom_inbound" />
     </PreferenceCategory>
 </PreferenceScreen>

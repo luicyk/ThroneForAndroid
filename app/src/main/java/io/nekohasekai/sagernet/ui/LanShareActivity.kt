@@ -17,11 +17,14 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.outbound.json.JsonInput
+import io.nekohasekai.sagernet.database.SettingValidators
 import io.nekohasekai.sagernet.database.SettingsRegistry
 import io.nekohasekai.sagernet.databinding.LayoutLanShareBinding
 import io.nekohasekai.sagernet.databinding.LayoutLanShareClientBinding
 import io.nekohasekai.sagernet.databinding.LayoutLanSharePlanBinding
 import io.nekohasekai.sagernet.utils.LanClients
+import io.nekohasekai.sagernet.ui.json.JsonEditorActivity
 import io.nekohasekai.sagernet.ui.test.TestFormat
 import io.nekohasekai.sagernet.widget.applyInsetPadding
 import java.net.Inet4Address
@@ -93,6 +96,17 @@ class LanShareActivity : ThemedActivity() {
         planB.copyPort.setOnClickListener { copy(getString(R.string.lan_share_copied_port), planB.planPort.text.toString()) }
         binding.refresh.setOnClickListener { refreshClients() }
         binding.authRow.setOnClickListener { openAuthSettings() }
+binding.customInboundRow.setOnClickListener { openCustomInbound() }
+binding.portRandom.setOnCheckedChangeListener { _, checked ->
+if (updatingSwitch) return@setOnCheckedChangeListener
+DataStore.randomInboundPort = checked
+SagerNet.reloadService()
+render()
+}
+binding.portInput.setOnFocusChangeListener { _, hasFocus ->
+if (hasFocus || updatingSwitch) return@setOnFocusChangeListener
+commitPort()
+}
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -134,6 +148,13 @@ class LanShareActivity : ThemedActivity() {
         binding.serviceState.text = getString(if (connected) R.string.lan_share_running else R.string.lan_share_stopped)
         binding.switchSummary.text =
             getString(R.string.lan_share_inbound_summary, DataStore.inboundAddress)
+        updatingSwitch = true
+        binding.portRandom.isChecked = DataStore.randomInboundPort
+        binding.portInput.setText(port.toString())
+        binding.portInput.isEnabled = !DataStore.randomInboundPort
+        binding.customInboundSummary.text = customInboundSummary()
+        updatingSwitch = false
+
         binding.authSummary.text = if (DataStore.inboundAuth) {
             getString(R.string.lan_share_auth_on, DataStore.inboundUser)
         } else {
@@ -302,6 +323,44 @@ class LanShareActivity : ThemedActivity() {
     private fun formatRate(bytes: Long?): String {
         if (bytes == null || bytes < 0) return "-"
         return TestFormat.bytes(this, bytes)
+    }
+
+    /** "empty" until the override carries at least one inbound, otherwise a short description of what it holds. */
+    private fun customInboundSummary(): String {
+        val raw = DataStore.customInbound.trim()
+        if (raw.isEmpty() || raw == "{}") return getString(R.string.lan_share_custom_empty)
+        val count = runCatching { JsonInput.parseObject(raw).array("inbounds").size }.getOrDefault(-1)
+        return if (count > 0) {
+            resources.getQuantityString(R.plurals.lan_share_custom_count, count, count)
+        } else {
+            getString(R.string.lan_share_custom_present)
+        }
+    }
+
+    /** Validates and stores the typed port; anything unparsable is put back the way it was. */
+    private fun commitPort() {
+        val raw = binding.portInput.text.toString().trim()
+        val port = raw.toIntOrNull()
+        if (port == null || !SettingValidators.isPort(port)) {
+            binding.portInput.setText(DataStore.inboundSocksPort.toString())
+            Snackbar.make(binding.root, getString(R.string.invalid_port, raw), Snackbar.LENGTH_LONG).show()
+            return
+        }
+        if (port == DataStore.inboundSocksPort) return
+        DataStore.inboundSocksPort = port
+        boundPort = -1
+        SagerNet.reloadService()
+        render()
+    }
+
+    /** The raw inbound JSON, edited in the project's own JSON editor. */
+    private fun openCustomInbound() {
+        val intent = JsonEditorActivity.intent(
+            this,
+            SettingsRegistry.CUSTOM_INBOUND.key,
+            useConfigStore = true,
+        )
+        runCatching { startActivity(intent) }
     }
 
     private fun copy(message: String, text: String) {

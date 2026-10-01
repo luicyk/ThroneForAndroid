@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <lint>
     <issue id="UnusedAttribute" severity="ignore" />
+    <!-- FirstStartPrompts guards the POST_NOTIFICATIONS launch with an SDK_INT >= 33 check; InlinedApi only sees the
+         compile-time constant reference, not the guard. -->
+    <issue id="InlinedApi" severity="ignore" />
     <issue id="UnknownNullness" severity="ignore" />
     <issue id="DiscouragedPrivateApi" severity="ignore" />
     <issue id="Typos" severity="ignore" />

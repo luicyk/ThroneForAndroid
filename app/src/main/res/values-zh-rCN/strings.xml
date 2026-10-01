@@ -1586,6 +1586,11 @@
 
     <!-- LAN sharing screen -->
     <string name="lan_share_title">局域网共享</string>
+    <string name="lan_share_custom_empty">未设置自定义入站，使用自动生成的混合入站</string>
+    <string name="lan_share_custom_present">自定义 JSON，未列出任何入站</string>
+    <plurals name="lan_share_custom_count">
+        <item quantity="other">%1$d 个自定义入站</item>
+    </plurals>
     <string name="lan_share_open_hint">查看在其他设备上应填写的地址</string>
     <string name="lan_share_headline_detail">端口 %1$d · 认证：%2$s</string>
     <string name="lan_share_summary_off">共享已关闭</string>
