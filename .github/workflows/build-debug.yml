@@ -27,3 +27,15 @@ jobs:
           path: app/build/outputs/apk/oss/debug/
           if-no-files-found: error
           retention-days: 14
+      # The core aar and the sing-box schema are produced by this build and are
+      # not in git, so a local checkout cannot compile without them. Upload them
+      # alongside the APK: unpack the archive over the repository root.
+      - name: Upload core for local builds
+        uses: actions/upload-artifact@v7
+        with:
+          name: Throne-core-${{ github.sha }}
+          path: |
+            app/libs/ThroneCore.aar
+            app/src/main/assets/schema/sing-box.json
+          if-no-files-found: error
+          retention-days: 30
