@@ -1583,4 +1583,20 @@
     <plurals name="route_update_complete">
         <item quantity="other">已更新 %d 个远程路由配置。</item>
     </plurals>
+
+    <!-- LAN Sharing screen -->
+    <string name="lan_share_title">局域网共享</string>
+    <string name="lan_share_warning">同一网络下的其他设备可以连接到此代理。同一 Wi-Fi 上的任何人都能使用它；不用时请关闭。</string>
+    <string name="lan_share_off_hint">共享已关闭。代理仅接受本机的连接。</string>
+    <string name="lan_share_status_running">已在端口 %1\ 上共享</string>
+    <string name="lan_share_status_stopped">已在端口 %1\ 上共享，但服务未运行</string>
+    <string name="lan_share_addresses">在其他设备上填写的地址</string>
+    <string name="lan_share_no_wifi">未找到网络地址。请连接允许本地通信的 Wi-Fi 或移动网络。</string>
+    <string name="lan_share_summary">局域网地址与在其他设备上填写的地址</string>
+    <string name="lan_share_copy">复制地址</string>
+    <string name="lan_share_copied">已复制</string>
+    <string name="lan_share_help_title">连接方法</string>
+    <string name="lan_share_help">将另一台设备的 Wi-Fi 代理设置为上面的地址和相同端口。\n\nSOCKS5：主机、端口，若未开启认证则无需密码。\n\nHTTP：按普通网页代理填写主机和端口。\n\n如果无法连接，可能是网络禁止设备间通信（AP隔离）；手机还需允许本应用绕过电池优化。</string>
+    <string name="lan_share_summary_off">共享已关闭</string>
+    <string name="lan_share_summary_on">共享已开启，端口 %1$d</string>
 </resources>

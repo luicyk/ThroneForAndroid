@@ -17,6 +17,7 @@ import io.nekohasekai.sagernet.group.RemoteRouteUpdater
 import io.nekohasekai.sagernet.ktx.needReload
 import io.nekohasekai.sagernet.ui.AppManagerActivity
 import io.nekohasekai.sagernet.ui.GroupSettingsActivity
+import io.nekohasekai.sagernet.ui.LanShareActivity
 import io.nekohasekai.sagernet.ui.MainActivity
 import io.nekohasekai.sagernet.ui.route.RouteQuickSwitch
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,17 @@ class InboundSettingsFragment : SettingsScreenFragment(R.xml.settings_inbound) {
             true
         }
 
+        // The LAN screen edits the same inboundAddress, so its summary has to follow the switch here.
+        val lanShare = pref<Preference>(KEY_LAN_SHARE)
+        lanShare.setOnPreferenceClickListener {
+            startActivity(LanShareActivity.intent(requireContext()))
+            true
+        }
+        updateLanShareSummary(lanShare)
+        allowLan.registerOnSharedPreferenceChangeListener(object : android.content.SharedPreferences.OnSharedPreferenceChangeListener {
+            override fun onSharedPreferenceChanged(sp: android.content.SharedPreferences?, key: String?) = updateLanShareSummary(lanShare)
+        })
+
         fun updateMixedState(disabled: Boolean) {
             for (p in listOf(port, randomPort, allowLan, auth, user, pass, httpProxyBypass)) p.isEnabled = !disabled
             if (disabled) {
@@ -91,6 +103,16 @@ class InboundSettingsFragment : SettingsScreenFragment(R.xml.settings_inbound) {
 
     private companion object {
         const val KEY_ALLOW_LAN = "inboundAllowLan"
+        const val KEY_LAN_SHARE = "lanShare"
+    }
+
+    /** Shows the current sharing state on the entry that opens the LAN screen. */
+    private fun updateLanShareSummary(pref: Preference) {
+        pref.summary = if (DataStore.allowLanAccess) {
+            getString(R.string.lan_share_summary_on, DataStore.inboundSocksPort)
+        } else {
+            getString(R.string.lan_share_summary_off)
+        }
     }
 }
 

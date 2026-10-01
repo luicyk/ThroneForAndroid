@@ -1757,4 +1757,20 @@
     <string name="scanner_no_camera">No camera: choose an image with a QR code</string>
     <string name="share_target_missing">No app can receive the file</string>
     <string name="try_again_later">Please try again later</string>
+
+    <!-- LAN Sharing screen -->
+    <string name="lan_share_title">LAN sharing</string>
+    <string name="lan_share_warning">Other devices on your network can reach this proxy. Anyone on the same Wi-Fi could use it; turn this off when you are not.</string>
+    <string name="lan_share_off_hint">Sharing is off. The proxy only accepts connections from this device.</string>
+    <string name="lan_share_status_running">Sharing on port %1$d</string>
+    <string name="lan_share_status_stopped">Sharing on port %1$d, service not running</string>
+    <string name="lan_share_addresses">Addresses to use on the other device</string>
+    <string name="lan_share_no_wifi">No network address found. Connect to Wi-Fi or a mobile network that allows local connections.</string>
+    <string name="lan_share_summary">Addresses and addresses to type on other devices</string>
+    <string name="lan_share_copy">Copy addresses</string>
+    <string name="lan_share_copied">Copied</string>
+    <string name="lan_share_help_title">How to connect</string>
+    <string name="lan_share_help">Set the other device\'s Wi-Fi proxy to the address above and the same port.\n\nSOCKS5: host, port, no authentication unless you turned authentication on.\n\nHTTP: host and port as a normal web proxy.\n\nIf it cannot connect, the network may block device-to-device traffic (client isolation); the phone must also allow the app through any battery optimisation.</string>
+    <string name="lan_share_summary_off">Sharing off</string>
+    <string name="lan_share_summary_on">Sharing on, port %1$d</string>
 </resources>

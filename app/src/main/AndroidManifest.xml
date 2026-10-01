@@ -270,6 +270,10 @@
             android:configChanges="uiMode"
             android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity" />
         <activity
+            android:name="io.nekohasekai.sagernet.ui.LanShareActivity"
+            android:configChanges="uiMode"
+            android:parentActivityName="io.nekohasekai.sagernet.ui.MainActivity" />
+        <activity
             android:name="io.nekohasekai.sagernet.ui.profile.CustomSettingsActivity"
             android:configChanges="uiMode" />
         <activity
