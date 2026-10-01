@@ -118,17 +118,23 @@ object LanClients {
      */
     fun shareableAddresses(): List<Inet4Address> {
         val result = LinkedHashSet<Inet4Address>()
-        try {
-            for (nic in NetworkInterface.getNetworkInterfaces()) {
-                if (!nic.isUp || nic.isLoopback || nic.isVirtual) continue
-                for (address in nic.inetAddresses) {
-                    if (address !is Inet4Address) continue
-                    if (address.isLoopbackAddress || address.isLinkLocalAddress) continue
-                    result.add(address)
-                }
-            }
+        val nics = try {
+            NetworkInterface.getNetworkInterfaces()
         } catch (e: Throwable) {
-            // No readable interfaces; the caller shows the "no network address" line.
+            return emptyList()
+        }
+        // getNetworkInterfaces and getInetAddresses both hand back Enumerations, walked explicitly rather than through
+        // the for-loop extension.
+        while (nics.hasMoreElements()) {
+            val nic = nics.nextElement()
+            if (!nic.isUp || nic.isLoopback || nic.isVirtual) continue
+            val addresses = nic.inetAddresses ?: continue
+            while (addresses.hasMoreElements()) {
+                val address = addresses.nextElement()
+                if (address !is Inet4Address) continue
+                if (address.isLoopbackAddress || address.isLinkLocalAddress) continue
+                result.add(address)
+            }
         }
         return result.sortedBy { it.hostAddress }
     }

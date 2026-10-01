@@ -23,6 +23,7 @@ import io.nekohasekai.sagernet.databinding.LayoutLanShareClientBinding
 import io.nekohasekai.sagernet.databinding.LayoutLanSharePlanBinding
 import io.nekohasekai.sagernet.utils.LanClients
 import io.nekohasekai.sagernet.widget.applyInsetPadding
+import java.net.Inet4Address
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -241,19 +242,35 @@ class LanShareActivity : ThemedActivity() {
         }
     }
 
-    /** The address of the wlan interface when there is one, else the first shareable address. */
+    /**
+     * The address of the wlan interface when there is one, else the first shareable address.
+     *
+     * NetworkInterface.getInetAddresses() is an Enumeration, not a Collection, so membership is checked by walking it.
+     */
     private fun wlanAddress(): String? {
         val all = LanClients.shareableAddresses()
         if (all.isEmpty()) return null
-        val named = all.mapNotNull { address ->
-            runCatching {
-                val nic = java.net.NetworkInterface.getNetworkInterfaces().asSequence()
-                    .firstOrNull { candidate -> candidate.inetAddresses.contains(address) }
-                address to nic?.name
-            }.getOrNull()
+        var wlan: Inet4Address? = null
+        var fallback: Inet4Address? = null
+        val nics = runCatching { java.net.NetworkInterface.getNetworkInterfaces() }.getOrNull()
+            ?: return all.first().hostAddress
+        while (nics.hasMoreElements()) {
+            val nic = nics.nextElement()
+            val onThisNic = all.filter { address -> nic.hasAddress(address) }
+            if (onThisNic.isEmpty()) continue
+            if (fallback == null) fallback = onThisNic.first()
+            if (nic.name.startsWith("wlan") && wlan == null) wlan = onThisNic.first()
         }
-        val wlan = named.firstOrNull { it.second?.startsWith("wlan") == true }
-        return (wlan?.first ?: named.first().first).hostAddress
+        return (wlan ?: fallback ?: all.first()).hostAddress
+    }
+
+    /** [NetworkInterface.getInetAddresses] is an [Enumeration], so it has to be walked to test membership. */
+    private fun java.net.NetworkInterface.hasAddress(address: Inet4Address): Boolean {
+        val addresses = addresses ?: return false
+        while (addresses.hasMoreElements()) {
+            if (addresses.nextElement() == address) return true
+        }
+        return false
     }
 
     private fun renderClients(entries: Map<String, LanClients.Entry>) {
