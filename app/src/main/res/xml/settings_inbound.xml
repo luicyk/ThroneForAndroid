@@ -29,7 +29,7 @@
         <Preference
             app:icon="@drawable/ic_social_share"
             app:key="lanShare"
-            app:summary="@string/lan_share_summary"
+            app:summary="@string/lan_share_open_hint"
             app:title="@string/lan_share_title" />
     </PreferenceCategory>
 

@@ -1586,6 +1586,10 @@
 
     <!-- LAN sharing screen -->
     <string name="lan_share_title">局域网共享</string>
+    <string name="lan_share_open_hint">查看在其他设备上应填写的地址</string>
+    <string name="lan_share_headline_detail">端口 %1$d · 认证：%2$s</string>
+    <string name="lan_share_summary_off">共享已关闭</string>
+    <string name="lan_share_summary_on">共享已开启，端口 %1$d</string>
     <string name="lan_share_refresh">刷新</string>
     <string name="lan_share_settings">设置</string>
     <string name="lan_share_state_on">代理共享中</string>
