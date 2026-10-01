@@ -54,9 +54,13 @@ data class LatencyHistogram(
     }
 
     companion object {
-        /** Five bins per desktop band: ≤100, ≤300, >300 ms. */
+        /**
+         * Five bins per desktop band: ≤500, ≤1000, >1000 ms, matching the thresholds in
+         * ProxyEntity.latencyColor. The first ten edges are the fine 100 ms steps around the fast band, the rest
+         * widen out to cover the slow band.
+         */
         @JvmField
-        val EDGES = intArrayOf(20, 40, 60, 80, 100, 140, 180, 220, 260, 300, 500, 700, 1000, 2000)
+        val EDGES = intArrayOf(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000)
         val BIN_COUNT = EDGES.size + 1
 
         fun binOf(ms: Int): Int {

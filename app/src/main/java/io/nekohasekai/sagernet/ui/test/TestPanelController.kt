@@ -575,9 +575,11 @@ class TestPanelController(
             text.setSpan(ForegroundColorSpan(color), start, text.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             text.append(' ').append(label).append(' ').append(count.toString())
         }
+        // Sample one latency from each colour band so the swatch matches the bar colour
+        // for the thresholds in ProxyEntity.latencyColor (≤500, ≤1000, >1000 ms).
         item(TestFormat.latencyColor(1), context.getString(R.string.test_panel_band_fast), bands[0])
-        item(TestFormat.latencyColor(101), context.getString(R.string.test_panel_band_medium), bands[1])
-        item(TestFormat.latencyColor(301), context.getString(R.string.test_panel_band_slow), bands[2])
+        item(TestFormat.latencyColor(501), context.getString(R.string.test_panel_band_medium), bands[1])
+        item(TestFormat.latencyColor(1001), context.getString(R.string.test_panel_band_slow), bands[2])
         item(TestFormat.latencyColor(-1), context.getString(R.string.test_panel_failed), data.failed)
         if (data.connectOnly > 0) {
             item(TestFormat.latencyColor(-2), context.getString(R.string.test_panel_band_connect_only), data.connectOnly)
