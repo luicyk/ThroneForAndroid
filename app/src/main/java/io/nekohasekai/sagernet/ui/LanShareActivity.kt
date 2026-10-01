@@ -72,8 +72,9 @@ class LanShareActivity : ThemedActivity() {
         supportActionBar?.setHomeAsUpIndicator(R.drawable.baseline_arrow_back_24)
         binding.toolbar.setNavigationOnClickListener { finish() }
 
-        planA = LayoutLanSharePlanBinding.bind(binding.planA.root)
-        planB = LayoutLanSharePlanBinding.bind(binding.planB.root)
+        // The two plans are <include>d with an id, so ViewBinding already exposes them as bindings.
+        planA = binding.planA
+        planB = binding.planB
         allowLan = binding.switchAllowLan
 
         allowLan.setOnCheckedChangeListener { _, checked ->
@@ -161,11 +162,11 @@ class LanShareActivity : ThemedActivity() {
             icon = R.drawable.ic_baseline_block_24,
             title = R.string.lan_share_plan_b,
             note = getString(R.string.lan_share_plan_b_note),
-            host = binding.lastWifiAddress ?: getString(R.string.lan_share_no_address),
+            host = wifiAddress ?: getString(R.string.lan_share_no_address),
             port = portText,
-            badge = binding.lastWifiAddress?.let { getString(R.string.lan_share_wifi_connected) }
+            badge = wifiAddress?.let { getString(R.string.lan_share_wifi_connected) }
                 ?: getString(R.string.lan_share_wifi_unknown),
-            badgeActive = binding.lastWifiAddress != null,
+            badgeActive = wifiAddress != null,
         )
 
         binding.clientsEmpty.isVisible = false
