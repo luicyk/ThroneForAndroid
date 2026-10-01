@@ -1269,9 +1269,10 @@
     <string name="test_panel_axis_connect_only">VPN</string>
     <string name="test_panel_axis_failed">失败</string>
     <string name="test_panel_band_connect_only">连接正常</string>
-    <string name="test_panel_band_fast">≤100 毫秒</string>
-    <string name="test_panel_band_medium">≤300 毫秒</string>
-    <string name="test_panel_band_slow">>300 毫秒</string>
+    <string name="test_panel_band_fast">≤300 毫秒</string>
+    <string name="test_panel_band_medium">≤500 毫秒</string>
+    <string name="test_panel_band_slow">≤800 毫秒</string>
+    <string name="test_panel_band_very_slow">>800 毫秒</string>
     <string name="test_panel_chart_description">下载 %1$s，上传 %2$s</string>
     <string name="test_panel_collapse">隐藏测试详情</string>
     <string name="test_panel_completed">已完成</string>
@@ -1290,7 +1291,7 @@
     <string name="test_panel_failure_unreachable">测试服务无响应</string>
     <string name="test_panel_fastest">最快</string>
     <string name="test_panel_fastest_so_far">目前最快</string>
-    <string name="test_panel_histogram_description">延迟：%1$d 个不超过 100 毫秒，%2$d 个不超过 300 毫秒，%3$d 个超过 300 毫秒，%4$d 个失败</string>
+    <string name="test_panel_histogram_description">延迟：%1$d 个不超过 300 毫秒，%2$d 个不超过 500 毫秒，%3$d 个不超过 800 毫秒，%4$d 个超过 800 毫秒，%5$d 个失败</string>
     <string name="test_panel_hours_minutes">%1$d 小时 %2$d 分</string>
     <string name="test_panel_kind_ip">IP 与国家/地区</string>
     <string name="test_panel_kind_speed">速度测试</string>

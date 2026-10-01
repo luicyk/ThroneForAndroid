@@ -209,17 +209,18 @@ data class ProxyEntity(
     /**
      * Profile::DisplayLatencyColor; 0 = no colour (untested).
      *
-     * Bands: <= 500ms green, <= 1000ms blue, slower amber. Every failed result is red, including
-     * [LATENCY_CONNECT_ONLY] (the tunnel is up but the egress probe failed), so a negative latency never reads as
-     * a merely "different" state.
+     * Bands: <= 300ms green, <= 500ms blue, <= 800ms amber, slower red. Every failed result is grey, including
+     * [LATENCY_CONNECT_ONLY] (the tunnel is up but the egress probe failed), so an unusable node never reads as
+     * merely "slow".
      */
     @ColorInt
     fun latencyColor(): Int = when {
         latency == 0 -> 0
         latency < 0 -> COLOR_FAILED
-        latency <= 500 -> COLOR_FAST
-        latency <= 1000 -> COLOR_MEDIUM
-        else -> COLOR_SLOW
+        latency <= 300 -> COLOR_FAST
+        latency <= 500 -> COLOR_MEDIUM
+        latency <= 800 -> COLOR_SLOW
+        else -> COLOR_TOO_SLOW
     }
 
     companion object {
@@ -231,10 +232,11 @@ data class ProxyEntity(
         /** The rate text of a failed speed test. */
         const val SPEED_NA = "N/A"
 
-        @ColorInt private const val COLOR_FAILED = 0xFFE53935.toInt()
+        @ColorInt private const val COLOR_FAILED = 0xFF9E9E9E.toInt()
         @ColorInt private const val COLOR_FAST = 0xFF43A047.toInt()
         @ColorInt private const val COLOR_MEDIUM = 0xFF1E88E5.toInt()
         @ColorInt private const val COLOR_SLOW = 0xFFFBC02D.toInt()
+        @ColorInt private const val COLOR_TOO_SLOW = 0xFFE53935.toInt()
 
         /** Profile::IsWorking for a latency code: a measured latency or a connect-only tunnel. */
         @JvmStatic

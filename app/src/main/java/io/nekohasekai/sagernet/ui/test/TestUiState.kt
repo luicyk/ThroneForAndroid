@@ -46,21 +46,23 @@ data class LatencyHistogram(
     val failed: Int = 0,
     val connectOnly: Int = 0,
 ) {
-    /** Counts of the desktop colour bands ≤100 ms, ≤300 ms, >300 ms. */
+    /** Counts of the desktop colour bands ≤300 ms, ≤500 ms, ≤800 ms, >800 ms. */
     fun bandCounts(): IntArray {
-        val bands = IntArray(3)
-        bins.forEachIndexed { i, n -> bands[if (i < 5) 0 else if (i < 10) 1 else 2] += n }
+        val bands = IntArray(4)
+        bins.forEachIndexed { i, n -> bands[if (i < BINS_PER_BAND) 0 else if (i < 2 * BINS_PER_BAND) 1 else if (i < 3 * BINS_PER_BAND) 2 else 3] += n }
         return bands
     }
 
     companion object {
+        /** Bins per colour band: three edges of 100 ms per 200 ms band, plus a wide open tail. */
+        const val BINS_PER_BAND = 3
+
         /**
-         * Five bins per desktop band: ≤500, ≤1000, >1000 ms, matching the thresholds in
-         * ProxyEntity.latencyColor. The first ten edges are the fine 100 ms steps around the fast band, the rest
-         * widen out to cover the slow band.
+         * Three bins per desktop band: ≤300, ≤500, ≤800 ms and the open tail beyond, matching the thresholds in
+         * ProxyEntity.latencyColor. Every band edge is a multiple of 100 ms so [BINS_PER_BAND] holds.
          */
         @JvmField
-        val EDGES = intArrayOf(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000)
+        val EDGES = intArrayOf(100, 200, 300, 400, 500, 600, 700, 800, 1000, 1500, 2000, 3000)
         val BIN_COUNT = EDGES.size + 1
 
         fun binOf(ms: Int): Int {

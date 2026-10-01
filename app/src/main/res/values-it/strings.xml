@@ -1071,9 +1071,10 @@
     <string name="test_panel_distinct_ips">%d IP in uscita distinti</string>
     <string name="test_panel_more">+%d altri</string>
     <string name="test_panel_ms">%d ms</string>
-    <string name="test_panel_band_fast">≤100 ms</string>
-    <string name="test_panel_band_medium">≤300 ms</string>
-    <string name="test_panel_band_slow">>300 ms</string>
+    <string name="test_panel_band_fast">≤300 ms</string>
+    <string name="test_panel_band_medium">≤500 ms</string>
+    <string name="test_panel_band_slow">≤800 ms</string>
+    <string name="test_panel_band_very_slow">&gt;800 ms</string>
     <string name="test_panel_band_connect_only">Connessione OK</string>
     <string name="test_panel_axis_failed">fallimento</string>
     <string name="test_panel_axis_connect_only">VPN</string>

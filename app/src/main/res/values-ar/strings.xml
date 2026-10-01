@@ -1225,9 +1225,10 @@
     <string name="test_panel_axis_connect_only">VPN</string>
     <string name="test_panel_axis_failed">فشل</string>
     <string name="test_panel_band_connect_only">الاتصال ناجح</string>
-    <string name="test_panel_band_fast">≤100 مللي ثانية</string>
-    <string name="test_panel_band_medium">≤300 مللي ثانية</string>
-    <string name="test_panel_band_slow">>300 مللي ثانية</string>
+    <string name="test_panel_band_fast">≤300 ثانية</string>
+    <string name="test_panel_band_medium">≤500 ثانية</string>
+    <string name="test_panel_band_slow">≤800 ثانية</string>
+    <string name="test_panel_band_very_slow">&gt;800 ثانية</string>
     <string name="test_panel_chart_description">تنزيل %1$s، رفع %2$s</string>
     <string name="test_panel_collapse">إخفاء تفاصيل الاختبار</string>
     <string name="test_panel_completed">مكتمل</string>

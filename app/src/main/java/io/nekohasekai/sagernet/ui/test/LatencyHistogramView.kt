@@ -15,9 +15,9 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Latency distribution: five bars per desktop colour band (≤500, ≤1000, >1000 ms, coloured like
+ * Latency distribution: bars grouped by desktop colour band (≤300, ≤500, ≤800, >800 ms, coloured like
  * ProxyEntity.latencyColor), then the failed results and, when present, the VPN connect-only ones.
- * Bins are 100 ms wide, so bin 5 is the 500 ms edge and bin 10 the 1000 ms edge.
+ * Bin upper bounds come from [LatencyHistogram.EDGES], so the band edges land on bins 2 / 4 / 7.
  */
 class LatencyHistogramView @JvmOverloads constructor(
     context: Context,
@@ -134,7 +134,10 @@ class LatencyHistogramView @JvmOverloads constructor(
 
     private companion object {
         const val GAP_SLOTS = 0.8f
-        val TICKS = listOf(5 to "500", 10 to "1s", 13 to "3s")
+
+        // Bins are the EDGES of LatencyHistogram, so the colour-band edges sit at bins 2 / 4 / 7
+        // (300 / 500 / 800 ms) and the last open bin starts above 3 s.
+        val TICKS = listOf(2 to "300", 4 to "500", 7 to "800")
         const val OPEN_BIN_LABEL = "3s+"
     }
 }

@@ -576,17 +576,18 @@ class TestPanelController(
             text.append(' ').append(label).append(' ').append(count.toString())
         }
         // Sample one latency from each colour band so the swatch matches the bar colour
-        // for the thresholds in ProxyEntity.latencyColor (≤500, ≤1000, >1000 ms).
+        // for the thresholds in ProxyEntity.latencyColor (≤300, ≤500, ≤800, >800 ms).
         item(TestFormat.latencyColor(1), context.getString(R.string.test_panel_band_fast), bands[0])
-        item(TestFormat.latencyColor(501), context.getString(R.string.test_panel_band_medium), bands[1])
-        item(TestFormat.latencyColor(1001), context.getString(R.string.test_panel_band_slow), bands[2])
+        item(TestFormat.latencyColor(301), context.getString(R.string.test_panel_band_medium), bands[1])
+        item(TestFormat.latencyColor(501), context.getString(R.string.test_panel_band_slow), bands[2])
+        item(TestFormat.latencyColor(801), context.getString(R.string.test_panel_band_very_slow), bands[3])
         item(TestFormat.latencyColor(-1), context.getString(R.string.test_panel_failed), data.failed)
         if (data.connectOnly > 0) {
             item(TestFormat.latencyColor(-2), context.getString(R.string.test_panel_band_connect_only), data.connectOnly)
         }
         legend.text = text
         histogram.contentDescription = context.getString(
-            R.string.test_panel_histogram_description, bands[0], bands[1], bands[2], data.failed
+            R.string.test_panel_histogram_description, bands[0], bands[1], bands[2], bands[3], data.failed
         )
     }
 
