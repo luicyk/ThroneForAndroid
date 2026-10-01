@@ -48,17 +48,18 @@ class LanShareActivity : ThemedActivity() {
     private lateinit var copyButton: MaterialButton
     private lateinit var copied: TextView
 
-    /** Guards the change listener: [render] sets the switch, which would otherwise look like a user edit. */
-    private var sharing = false
-
     /** The addresses currently listed, for the clipboard. */
     private var shareLines: List<String> = emptyList()
+
+    /** Set while [render] writes the switch, so the listener does not treat it as a user edit. */
+    private var updatingSwitch = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = LayoutLanShareBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        binding.root.applyInsetPadding()
+        binding.root.applyInsetPadding(top = true)
+        binding.toolbar.applyInsetPadding(horizontal = true)
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setHomeAsUpIndicator(R.drawable.baseline_arrow_back_24)
@@ -74,15 +75,12 @@ class LanShareActivity : ThemedActivity() {
         copyButton = binding.copyButton
         copied = binding.copied
 
-        allowLan.isChecked = DataStore.allowLanAccess
         allowLan.setOnCheckedChangeListener { _, checked ->
+            if (updatingSwitch) return@setOnCheckedChangeListener
             DataStore.inboundAddress =
                 if (checked) SettingsRegistry.LAN_ADDRESS else SettingsRegistry.LOOPBACK_ADDRESS
-            // The listener fires while rendering too, so only act on a real change.
-            if (checked != sharing) {
-                render()
-                SagerNet.reloadService()
-            }
+            render()
+            SagerNet.reloadService()
         }
         copyButton.setOnClickListener { copyAddresses() }
     }
@@ -93,11 +91,13 @@ class LanShareActivity : ThemedActivity() {
     }
 
     private fun render() {
-        sharing = DataStore.allowLanAccess
+        val sharing = DataStore.allowLanAccess
         val port = DataStore.inboundSocksPort
         val connected = DataStore.serviceState == BaseService.State.Connected
 
+        updatingSwitch = true
         allowLan.isChecked = sharing
+        updatingSwitch = false
         // Risk and help copy only matter while the inbound is reachable from the network.
         warning.isVisible = sharing
         offHint.isVisible = !sharing
