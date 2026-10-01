@@ -266,7 +266,7 @@ class LanShareActivity : ThemedActivity() {
 
     /** [NetworkInterface.getInetAddresses] is an [Enumeration], so it has to be walked to test membership. */
     private fun java.net.NetworkInterface.hasAddress(address: Inet4Address): Boolean {
-        val addresses = addresses ?: return false
+        val addresses: java.util.Enumeration<java.net.InetAddress> = getInetAddresses() ?: return false
         while (addresses.hasMoreElements()) {
             if (addresses.nextElement() == address) return true
         }

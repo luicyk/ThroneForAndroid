@@ -48,8 +48,8 @@ object LanClients {
             result[address] = Entry(
                 address = address,
                 connections = counters.connections,
-                up = counters.rx?.let { now -> before?.let { now - it.rx } },
-                down = counters.tx?.let { now -> before?.let { now - it.tx } },
+                up = counters.rx?.let { now -> before?.rx?.let { was -> now - was } },
+                down = counters.tx?.let { now -> before?.tx?.let { was -> now - was } },
             )
         }
         return result
@@ -128,7 +128,7 @@ object LanClients {
         while (nics.hasMoreElements()) {
             val nic = nics.nextElement()
             if (!nic.isUp || nic.isLoopback || nic.isVirtual) continue
-            val addresses = nic.inetAddresses ?: continue
+            val addresses: java.util.Enumeration<java.net.InetAddress> = nic.getInetAddresses() ?: continue
             while (addresses.hasMoreElements()) {
                 val address = addresses.nextElement()
                 if (address !is Inet4Address) continue
