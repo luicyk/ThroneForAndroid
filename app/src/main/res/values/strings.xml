@@ -1758,19 +1758,39 @@
     <string name="share_target_missing">No app can receive the file</string>
     <string name="try_again_later">Please try again later</string>
 
-    <!-- LAN Sharing screen -->
+    <!-- LAN sharing screen -->
     <string name="lan_share_title">LAN sharing</string>
-    <string name="lan_share_warning">Other devices on your network can reach this proxy. Anyone on the same Wi-Fi could use it; turn this off when you are not.</string>
-    <string name="lan_share_off_hint">Sharing is off. The proxy only accepts connections from this device.</string>
-    <string name="lan_share_status_running">Sharing on port %1$d</string>
-    <string name="lan_share_status_stopped">Sharing on port %1$d, service not running</string>
-    <string name="lan_share_addresses">Addresses to use on the other device</string>
-    <string name="lan_share_no_wifi">No network address found. Connect to Wi-Fi or a mobile network that allows local connections.</string>
-    <string name="lan_share_summary">Addresses and addresses to type on other devices</string>
-    <string name="lan_share_copy">Copy addresses</string>
-    <string name="lan_share_copied">Copied</string>
-    <string name="lan_share_help_title">How to connect</string>
-    <string name="lan_share_help">Set the other device\'s Wi-Fi proxy to the address above and the same port.\n\nSOCKS5: host, port, no authentication unless you turned authentication on.\n\nHTTP: host and port as a normal web proxy.\n\nIf it cannot connect, the network may block device-to-device traffic (client isolation); the phone must also allow the app through any battery optimisation.</string>
-    <string name="lan_share_summary_off">Sharing off</string>
-    <string name="lan_share_summary_on">Sharing on, port %1$d</string>
+    <string name="lan_share_refresh">Refresh</string>
+    <string name="lan_share_settings">Settings</string>
+    <string name="lan_share_state_on">Sharing on</string>
+    <string name="lan_share_state_off">Sharing off</string>
+    <string name="lan_share_service_section">Sharing service</string>
+    <string name="lan_share_clients_section">Using the proxy now</string>
+    <string name="lan_share_running">Running</string>
+    <string name="lan_share_stopped">Stopped</string>
+    <string name="lan_share_auth">Auth</string>
+    <string name="lan_share_auth_off">no account or password</string>
+    <string name="lan_share_auth_on">user %1$s</string>
+    <string name="lan_share_inbound_summary">HTTP / SOCKS mixed inbound, bound to %1$s</string>
+    <string name="lan_share_plan_a">Plan A: share the hotspot</string>
+    <string name="lan_share_plan_a_note">When the phone runs the hotspot, clients dial the phone itself. Most Android versions give it %1$s once the hotspot is on.</string>
+    <string name="lan_share_plan_b">Plan B: same Wi-Fi</string>
+    <string name="lan_share_plan_b_note">Use this when both devices are on the same home or office router.</string>
+    <string name="lan_share_hotspot_unknown">Hotspot state unknown</string>
+    <string name="lan_share_wifi_connected">Wi-Fi connected</string>
+    <string name="lan_share_wifi_unknown">Wi-Fi address unknown</string>
+    <string name="lan_share_no_address">No address</string>
+    <string name="lan_share_host">Proxy host</string>
+    <string name="lan_share_port">Proxy port</string>
+    <string name="lan_share_copy_host">Copy host</string>
+    <string name="lan_share_copy_port">Copy port</string>
+    <string name="lan_share_copied_host">Host copied</string>
+    <string name="lan_share_copied_port">Port copied</string>
+    <string name="lan_share_clients_empty">No client is connected right now.</string>
+    <string name="lan_share_client_tag">LAN client</string>
+    <string name="lan_share_client_detail">%1$d active connections</string>
+    <plurals name="lan_share_clients_count">
+        <item quantity="one">%1$d device</item>
+        <item quantity="other">%1$d devices</item>
+    </plurals>
 </resources>
