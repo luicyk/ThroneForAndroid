@@ -5,11 +5,11 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
@@ -45,7 +45,7 @@ class LanShareActivity : ThemedActivity() {
     private lateinit var noAddress: TextView
     private lateinit var warning: TextView
     private lateinit var offHint: TextView
-    private lateinit var copyButton: MaterialButton
+    private lateinit var copyButton: Button
     private lateinit var copied: TextView
 
     /** The addresses currently listed, for the clipboard. */
