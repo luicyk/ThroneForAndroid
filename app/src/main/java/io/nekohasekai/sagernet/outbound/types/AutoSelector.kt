@@ -16,7 +16,18 @@ import io.nekohasekai.sagernet.outbound.json.jsonObjectOf
  * [Chain.list]; they are local ids, so imports and restores remap them.
  */
 class AutoSelector : Outbound("autoselector") {
+    /** The first tracked group, kept for the desktop-compatible JSON and as the fallback when [gids] is empty. */
     @JvmField var gid: Long = -1
+
+    /**
+     * Every tracked group in tab order; empty means just [gid]. Several groups contribute their members and, per the
+     * decision recorded on this feature, no landing or front proxy: those are per-group settings with no single
+     * answer for a set. The All tab ([ALL_GROUPS_ID]) already carries neither.
+     */
+    @JvmField var gids: List<Long> = emptyList()
+
+    /** The groups to read members from: [gids] when set, else the single [gid]. */
+    fun trackedGroups(): List<Long> = if (gids.isEmpty()) listOf(gid) else gids
 
     /** Case-insensitive regex over the member display name, empty = all. */
     @JvmField var nameFilter: String = ""
@@ -92,6 +103,9 @@ class AutoSelector : Outbound("autoselector") {
         if (obj.isEmpty()) return false
         if (obj.contains("name")) name = obj.string("name")
         if (obj.contains("gid")) gid = longOr(obj["gid"], -1)
+        if (obj.contains("gids")) {
+            gids = obj.array("gids").mapNotNullTo(ArrayList()) { (it as? Number)?.toLong() }.distinct()
+        }
         if (obj.contains("name_filter")) nameFilter = obj.string("name_filter")
         if (obj.contains("country_filter")) countryFilter = obj.string("country_filter")
         if (obj.contains("exclude_unavailable")) excludeUnavailable = boolOr(obj["exclude_unavailable"], true)
@@ -129,6 +143,8 @@ class AutoSelector : Outbound("autoselector") {
         obj["name"] = name
         obj["type"] = "autoselector"
         obj["gid"] = gid
+        // Written only when there is more than the one group [gid] already names.
+        if (gids.size > 1) obj["gids"] = idArray(gids)
         obj["name_filter"] = nameFilter
         obj["country_filter"] = countryFilter
         obj["exclude_unavailable"] = excludeUnavailable
@@ -165,6 +181,10 @@ class AutoSelector : Outbound("autoselector") {
 
     /** autoselector.h:140-167: clamps what a hand-edited profile could put out of range; runs before every plan. */
     fun normalize() {
+        // gids is the effective selection and gid only its head. Without this a single-group selector, whose
+        // JSON carries no gids key, would write an empty selection back to the editor on every open.
+        if (gids.isEmpty() && gid != -1L) gids = listOf(gid)
+        if (gids.isNotEmpty() && gid != gids.first()) gid = gids.first()
         if (poolCap < 1) poolCap = 1
         if (poolCap > MAX_POOL_CAP) poolCap = MAX_POOL_CAP
         if (buildLimit < 1) buildLimit = 1

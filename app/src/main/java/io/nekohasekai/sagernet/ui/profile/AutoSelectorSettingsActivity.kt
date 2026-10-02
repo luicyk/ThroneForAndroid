@@ -33,6 +33,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import moe.matsuri.nb4a.ui.MultiSelectPreference
 import moe.matsuri.nb4a.ui.SimpleMenuPreference
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
@@ -55,7 +56,7 @@ class AutoSelectorSettingsActivity : BindingSettingsActivity<AutoSelector>() {
 
         /** The fields refreshPlanSummary reads. */
         val PLAN_KEYS =
-            setOf("gid", "nameFilter", "countryFilter", "excludeUnavailable", "poolCap", "buildLimit", "resultValidityMins")
+            setOf("gids", "nameFilter", "countryFilter", "excludeUnavailable", "poolCap", "buildLimit", "resultValidityMins")
     }
 
     /** A spin box of edit_autoselector.ui: its range, unit and the text of 0 when it has one. */
@@ -83,7 +84,13 @@ class AutoSelectorSettingsActivity : BindingSettingsActivity<AutoSelector>() {
         IntField("balanceIntervalSec", 5, 3600, R.plurals.autosel_seconds),
     )
 
-    override fun createEntity() = AutoSelector().apply { gid = DataStore.editingGroup }
+    override fun createEntity() = AutoSelector().apply {
+        val editing = DataStore.editingGroup
+        if (editing != 0L) {
+            gid = editing
+            gids = listOf(editing)
+        }
+    }
     override val preferencesResource = R.xml.autoselector_preferences
 
     // Like a chain, a selector is not a sing-box outbound the schema could check, and its JSON holds local ids.
@@ -91,7 +98,7 @@ class AutoSelectorSettingsActivity : BindingSettingsActivity<AutoSelector>() {
 
     init {
         pbm.text("name")
-        pbm.text("gid")
+        pbm.text("gids")
         pbm.text("nameFilter")
         pbm.bool("balance")
         pbm.text("countryFilter")
@@ -167,8 +174,13 @@ class AutoSelectorSettingsActivity : BindingSettingsActivity<AutoSelector>() {
     private fun validate(): String? {
         val store = DataStore.profileCacheStore
         if (store.getString("name").isNullOrBlank()) return getString(R.string.autosel_name_empty)
-        val gid = store.getString("gid")?.trim()?.toLongOrNull() ?: 0L
-        if ((gid == ALL_GROUPS_ID && !DataStore.showAllGroup) || gid <= 0 || GroupRepo.get(gid) == null) return getString(R.string.autosel_select_group)
+        val gids = store.getString("gids")?.split('\n')?.mapNotNull { it.trim().toLongOrNull() }?.distinct().orEmpty()
+        if (gids.isEmpty()) return getString(R.string.autosel_select_group)
+        for (gid in gids) {
+            val gone = (gid == ALL_GROUPS_ID && !DataStore.showAllGroup) ||
+                (gid != ALL_GROUPS_ID && (gid <= 0 || GroupRepo.get(gid) == null))
+            if (gone) return getString(R.string.autosel_select_group)
+        }
         val filter = store.getString("nameFilter").orEmpty().trim()
         if (filter.isNotEmpty()) {
             try {
@@ -227,26 +239,37 @@ class AutoSelectorSettingsActivity : BindingSettingsActivity<AutoSelector>() {
     // ------------------------------------------------------------------------------------------------ rows
 
     /** "Servers from": non-archived groups in tab order; a tracked group outside that list stays selectable. */
+    /** "Servers from": the groups the selector may pick from. Entries are the tab order, archives last. */
     private fun PreferenceFragmentCompat.setupGroups() {
-        val menu = findPreference<SimpleMenuPreference>("gid") ?: return
+        val menu = findPreference<MultiSelectPreference>("gids") ?: return
         val groups = GroupRepo.allForDisplay()
-        // 0 = nothing stored yet, which falls back to the group being edited; -1 is the All tab.
-        var current = menu.value?.trim()?.toLongOrNull() ?: 0L
-        if (current == 0L) current = DataStore.editingGroup
         val entries = ArrayList<CharSequence>()
         val values = ArrayList<CharSequence>()
         for (group in groups) {
-            if (group.archive && group.id != current) continue
-            entries.add(if (group.archive) getString(R.string.autosel_group_archived, group.displayName()) else group.displayName())
+            if (group.archive) continue
+            entries.add(group.displayName())
             values.add(group.id.toString())
         }
-        if (current != 0L && current != ALL_GROUPS_ID && groups.none { it.id == current }) {
-            entries.add(getString(R.string.autosel_group_missing, current))
-            values.add(current.toString())
+        for (group in groups) {
+            if (!group.archive) continue
+            entries.add(getString(R.string.autosel_group_archived, group.displayName()))
+            values.add(group.id.toString())
+        }
+        // A group that has since been deleted stays listed so the stored selection still resolves.
+        val known = values.mapTo(HashSet()) { it.toString() }
+        val stored = menu.selectedValues().ifEmpty {
+            listOfNotNull(DataStore.editingGroup.takeIf { it != 0L }?.toString())
+        }
+        for (value in stored) {
+            if (value in known) continue
+            // The label is "#%d", and a value that is not a group id cannot be formatted at all.
+            val id = value.toIntOrNull()
+            entries.add(if (id != null) getString(R.string.autosel_group_missing, id) else value)
+            values.add(value)
+            known.add(value)
         }
         menu.entries = entries.toTypedArray()
         menu.entryValues = values.toTypedArray()
-        if (current != 0L) menu.value = current.toString()
     }
 
     private fun PreferenceFragmentCompat.setupTexts() {
@@ -358,7 +381,8 @@ class AutoSelectorSettingsActivity : BindingSettingsActivity<AutoSelector>() {
         val store = DataStore.profileCacheStore
         val preview = AutoSelector()
         preview.parseFromJson(ensureEditingOutbound().exportToJson())
-        preview.gid = store.getString("gid")?.trim()?.toLongOrNull() ?: -1L
+        preview.gids = store.getString("gids")?.split('\n')?.mapNotNull { it.trim().toLongOrNull() }?.distinct().orEmpty()
+        preview.gid = preview.gids.firstOrNull() ?: -1L
         preview.nameFilter = store.getString("nameFilter").orEmpty().trim()
         preview.countryFilter = store.getString("countryFilter").orEmpty().trim()
         preview.excludeUnavailable = store.getBoolean("excludeUnavailable", true)

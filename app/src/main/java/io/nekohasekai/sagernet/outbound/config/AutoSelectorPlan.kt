@@ -57,6 +57,32 @@ class SelectorGroup(
 fun interface SelectorStore {
     fun group(gid: Long): SelectorGroup?
 
+    /**
+     * Several tracked groups as one, so the plan and ConfigGenerator keep seeing a single group.
+     *
+     * Members are concatenated in the order the groups are tracked. Landing and front proxies are per-group
+     * settings, so they only survive when exactly one group is tracked; with two or more there is no single
+     * answer and none is applied.
+     */
+    fun groups(gids: List<Long>): SelectorGroup? {
+        if (gids.size <= 1) return group(gids.firstOrNull() ?: -1L)
+        val parts = gids.mapNotNull(::group)
+        if (parts.isEmpty()) return null
+        val members = ArrayList<SelectorMember>()
+        val seen = HashSet<Long>()
+        for (part in parts) for (member in part.members) if (seen.add(member.id)) members.add(member)
+        val single = parts.singleOrNull()
+        return SelectorGroup(
+            parts[0].id,
+            parts.joinToString(", ") { it.name },
+            single?.landingProxyId ?: -1L,
+            single?.frontProxyId ?: -1L,
+            single?.landingProxy,
+            single?.frontProxy,
+            members,
+        )
+    }
+
     companion object {
         @JvmField
         val NONE = SelectorStore { null }
@@ -152,7 +178,7 @@ class AutoSelectorPlanner @JvmOverloads constructor(
         plan.poolCapUsed = selector.poolCap
         plan.buildLimitUsed = selector.buildLimit
         val now = clock()
-        val group = store.group(selector.gid)
+        val group = store.groups(selector.trackedGroups())
         if (group == null) {
             plan.error = "Auto selector points at a group that no longer exists"
             return plan
@@ -180,7 +206,7 @@ class AutoSelectorPlanner @JvmOverloads constructor(
     /** AutoSelectorRankingCandidates (cpp:286-293): every eligible member in group order. */
     fun rankingCandidates(selectorId: Long, selector: AutoSelector): List<Long> {
         selector.normalize()
-        val group = store.group(selector.gid) ?: return emptyList()
+        val group = store.groups(selector.trackedGroups()) ?: return emptyList()
         return eligibleMembers(selectorId, selector, group, clock(), null)
     }
 
@@ -191,7 +217,7 @@ class AutoSelectorPlanner @JvmOverloads constructor(
     @JvmOverloads
     fun unmeasuredCandidates(selectorId: Long, selector: AutoSelector, stale: Collection<Long> = emptyList()): List<Long> {
         selector.normalize()
-        val group = store.group(selector.gid) ?: return emptyList()
+        val group = store.groups(selector.trackedGroups()) ?: return emptyList()
         val now = clock()
         val byId = group.members.associateBy { it.id }
         val staleSet = stale.toHashSet()
@@ -205,7 +231,7 @@ class AutoSelectorPlanner @JvmOverloads constructor(
      * into [AutoSelector.pool] / [AutoSelector.poolRankedAt]. The caller saves the profile.
      */
     fun rerank(selectorId: Long, selector: AutoSelector): List<Long> {
-        val group = store.group(selector.gid)
+        val group = store.groups(selector.trackedGroups())
         val now = clock()
         var members = if (group == null) emptyList() else {
             eligibleMembers(selectorId, selector, group, now, null).sortedWith(byLatency(selector, group, now))

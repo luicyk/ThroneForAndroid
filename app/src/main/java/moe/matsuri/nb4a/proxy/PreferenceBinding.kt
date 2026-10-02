@@ -25,7 +25,7 @@ object Type {
  * Binds one preference (key = [cacheName], value in [DataStore.profileCacheStore]) to a public `@JvmField` member of
  * an outbound. [fieldName] may be a dotted path ("tls.server_name", "tls.utls.fingerPrint", "peer.public_key"): every
  * segment but the last is read as a public field and walked into. String, Int, Long and Boolean members bind as
- * today; `List<String>` and `List<Int>` members bind as newline-joined text.
+ * today; `List<String>`, `List<Int>` and `List<Long>` members bind as newline-joined text.
  */
 class PreferenceBinding(
     val type: Int = Type.Text,
@@ -70,9 +70,14 @@ class PreferenceBinding(
         }
     }
 
-    private fun listElementIsInt(field: Field): Boolean {
-        val arg = (field.genericType as? ParameterizedType)?.actualTypeArguments?.firstOrNull()
-        return arg == Integer::class.java || arg == Int::class.javaObjectType
+    /** The element type of a List field, or null when it is not a boxed number. */
+    private fun listElementOf(field: Field): Class<*>? {
+        val arg = (field.genericType as? ParameterizedType)?.actualTypeArguments?.firstOrNull() ?: return null
+        return when (arg) {
+            Integer::class.java, Int::class.javaObjectType -> Integer::class.java
+            java.lang.Long::class.java, java.lang.Long.TYPE -> java.lang.Long::class.java
+            else -> null
+        }
     }
 
     private fun textToValue(text: String, field: Field): Any? = when {
@@ -82,7 +87,11 @@ class PreferenceBinding(
         field.type == Boolean::class.javaPrimitiveType || field.type == java.lang.Boolean::class.java -> text.trim() == "true"
         List::class.java.isAssignableFrom(field.type) -> {
             val lines = text.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
-            if (listElementIsInt(field)) ArrayList(lines.mapNotNull { it.toIntOrNull() }) else ArrayList(lines)
+            when (listElementOf(field)) {
+                Integer::class.java -> ArrayList(lines.mapNotNull { it.toIntOrNull() })
+                java.lang.Long::class.java -> ArrayList(lines.mapNotNull { it.toLongOrNull() })
+                else -> ArrayList(lines)
+            }
         }
         else -> null
     }
