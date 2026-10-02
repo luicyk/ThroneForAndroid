@@ -176,7 +176,8 @@ object SettingsMapper {
         }
 
         private fun load(gid: Long): SelectorGroup? {
-            // The All tab has no `groups` row; it stands for every profile and owns no landing or front proxy.
+            // The All tab has no `groups` row; it stands for every profile but the auto selectors, and owns no
+            // landing or front proxy. Leaving those out also keeps a selector over "All" out of its own member list.
             val all = gid == ALL_GROUPS_ID
             val group = when {
                 all -> ProxyGroup(ALL_GROUPS_ID, name = app.getString(R.string.group_all))

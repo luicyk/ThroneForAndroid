@@ -21,6 +21,13 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 /**
+ * The `type` column of an auto selector profile. The "All" tab leaves these out: an auto selector is a container
+ * over other groups rather than a server, so beside its own members it only invites being picked as one of them,
+ * and it has no latency of its own to show.
+ */
+const val TYPE_AUTO_SELECTOR = "autoselector"
+
+/**
  * One stored profile: the desktop's `profiles` row (ProfilesRepo.cpp:17-43) — [type] and [outboundJson] (the
  * compact key-sorted ExportToJson that is the data contract), [name] (a copy of the outbound's name), the test
  * results and the traffic — plus the Android-only [userOrder] (the dense 0..n-1 position in the group, the desktop's
@@ -279,11 +286,16 @@ data class ProxyEntity(
         @Query("SELECT * FROM `profiles`")
         fun getAll(): List<ProxyEntity>
 
-        /** The "All" tab ([ALL_GROUPS_ID]): every profile, in tab order, re-sorted within each group. */
-        @Query("SELECT `id` FROM `profiles` ORDER BY `gid`, `user_order`, `id`")
+        /**
+         * The "All" tab ([ALL_GROUPS_ID]): every profile but the auto selectors, in tab order, re-sorted within each
+         * group. See [TYPE_AUTO_SELECTOR] for why they are left out.
+         */
+        @Query("SELECT `id` FROM `profiles` WHERE `type` != '$TYPE_AUTO_SELECTOR' ORDER BY `gid`, `user_order`, `id`")
         fun getAllIds(): List<Long>
 
-        @Query("SELECT * FROM `profiles` ORDER BY `gid`, `user_order`, `id`")
+        @Query(
+            "SELECT * FROM `profiles` WHERE `type` != '$TYPE_AUTO_SELECTOR' ORDER BY `gid`, `user_order`, `id`"
+        )
         fun getAllInAllGroups(): List<ProxyEntity>
 
         @Query("SELECT `id` FROM `profiles` WHERE `gid` = :groupId ORDER BY `user_order`, `id`")
@@ -371,10 +383,11 @@ data class ProxyEntity(
         )
         fun clearGroupTestResults(groupId: Long): Int
 
-        /** [ALL_GROUPS_ID]: the same columns as [clearGroupTestResults], for the "All" tab. */
+        /** [ALL_GROUPS_ID]: the same columns as [clearGroupTestResults], over the tab's own members only. */
         @Query(
             "UPDATE `profiles` SET `latency` = 0, `latency_at` = 0, `dl_speed` = NULL, `ul_speed` = NULL, " +
-                "`test_country` = NULL, `ip_out` = NULL, `test_error` = NULL"
+                "`test_country` = NULL, `ip_out` = NULL, `test_error` = NULL" +
+                " WHERE `type` != '$TYPE_AUTO_SELECTOR'"
         )
         fun clearAllTestResults(): Int
 

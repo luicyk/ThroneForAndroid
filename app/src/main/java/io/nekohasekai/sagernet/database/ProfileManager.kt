@@ -101,7 +101,7 @@ object ProfileManager {
     fun memberIds(groupId: Long): List<Long> =
         if (groupId == ALL_GROUPS_ID) dao.getAllIds() else dao.getIdsByGroup(groupId)
 
-    /** The group's profiles in list order; [ALL_GROUPS_ID] answers with every profile, in tab order. */
+    /** The group's profiles in list order; [ALL_GROUPS_ID] answers with every profile in tab order but the auto selectors. */
     fun members(groupId: Long): List<ProxyEntity> =
         if (groupId == ALL_GROUPS_ID) dao.getAllInAllGroups() else dao.getByGroup(groupId)
 
