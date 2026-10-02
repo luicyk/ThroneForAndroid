@@ -97,6 +97,8 @@ class LanShareActivity : ThemedActivity() {
         binding.refresh.setOnClickListener { refreshClients() }
         binding.authRow.setOnClickListener { openAuthSettings() }
 binding.customInboundRow.setOnClickListener { openCustomInbound() }
+        // The row carries the label and the summary, so the whole strip is the switch target.
+        binding.portRandomRow.setOnClickListener { binding.portRandom.isChecked = !binding.portRandom.isChecked }
 binding.portRandom.setOnCheckedChangeListener { _, checked ->
 if (updatingSwitch) return@setOnCheckedChangeListener
 DataStore.randomInboundPort = checked
