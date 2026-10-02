@@ -42,7 +42,6 @@
                     android:id="@+id/headline_icon"
                     android:layout_width="64dp"
                     android:layout_height="64dp"
-                    android:background="@drawable/lan_share_badge"
                     android:contentDescription="@null"
                     android:padding="16dp"
                     android:src="@drawable/ic_social_share"

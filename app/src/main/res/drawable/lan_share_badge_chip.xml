@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Pill behind a small status label. -->
+<!-- Pill behind a small status label: the hotspot state and the wifi state. Kept faint so the text carries the
+     badge rather than the fill, which is what textColorSecondary at full strength did. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="?android:attr/textColorSecondary" />
+    <solid
+        android:alpha="0.16"
+        android:color="?android:attr/textColorSecondary" />
     <corners android:radius="10dp" />
 </shape>
