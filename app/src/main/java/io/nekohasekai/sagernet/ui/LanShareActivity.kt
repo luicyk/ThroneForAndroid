@@ -132,6 +132,10 @@ commitPort()
         // Poll while the screen is up: there is no callback for another device opening a connection.
         lifecycleScope.launch {
             while (isActive) {
+                // A random port is only drawn once the service rebuilds its config (BoxInstance.buildConfig),
+                // which happens after reloadService has been through a broadcast. Pick it up on the next tick
+                // rather than leaving a stale port on screen until the user leaves and comes back.
+                if (boundPort != DataStore.inboundSocksPort && !binding.portInput.hasFocus()) render()
                 refreshClients()
                 delay(CLIENT_REFRESH_MS)
             }
