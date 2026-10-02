@@ -90,6 +90,18 @@ class LanShareActivity : ThemedActivity() {
             SagerNet.reloadService()
         }
 
+        // The service itself, which the bind address above does not start. ServiceButton only lets its
+        // toggle be touched when the state can be stopped or is fully stopped, and this follows that.
+        binding.serviceRow.setOnClickListener {
+            if (binding.switchService.isEnabled) binding.switchService.toggle()
+        }
+        binding.switchService.setOnCheckedChangeListener { _, checked ->
+            if (updatingSwitch) return@setOnCheckedChangeListener
+            // canStop is false while connecting or stopping, so a stale tap cannot restart mid-teardown.
+            if (DataStore.serviceState.canStop) SagerNet.stopService() else SagerNet.startService()
+            render()
+        }
+
         planA.copyHost.setOnClickListener { copy(getString(R.string.lan_share_copied_host), planA.planHost.text.toString()) }
         planA.copyPort.setOnClickListener { copy(getString(R.string.lan_share_copied_port), planA.planPort.text.toString()) }
         planB.copyHost.setOnClickListener { copy(getString(R.string.lan_share_copied_host), planB.planHost.text.toString()) }
@@ -105,6 +117,10 @@ DataStore.randomInboundPort = checked
 SagerNet.reloadService()
 render()
 }
+        binding.portInput.setOnEditorActionListener { _, _, _ ->
+            commitPort()
+            true
+        }
 binding.portInput.setOnFocusChangeListener { _, hasFocus ->
 if (hasFocus || updatingSwitch) return@setOnFocusChangeListener
 commitPort()
@@ -145,20 +161,38 @@ commitPort()
     private fun render() {
         val sharing = DataStore.allowLanAccess
         val port = DataStore.inboundSocksPort
-        val connected = DataStore.serviceState == BaseService.State.Connected
 
         updatingSwitch = true
         allowLan.isChecked = sharing
         updatingSwitch = false
 
-        binding.serviceState.text = getString(if (connected) R.string.lan_share_running else R.string.lan_share_stopped)
         binding.switchSummary.text =
             getString(R.string.lan_share_inbound_summary, DataStore.inboundAddress)
         updatingSwitch = true
         binding.portRandom.isChecked = DataStore.randomInboundPort
-        binding.portInput.setText(port.toString())
+        // Never clobber a port mid-edit: commitPort() runs on focus loss, so overwriting here would drop
+        // whatever was typed. isEnabled still runs every time, that is what turning the random port off
+        // depends on.
+        if (!binding.portInput.hasFocus()) binding.portInput.setText(port.toString())
         binding.portInput.isEnabled = !DataStore.randomInboundPort
         binding.customInboundSummary.text = customInboundSummary()
+        updatingSwitch = false
+
+        // Same state -> icon mapping ServiceButton uses on the main screen.
+        val state = DataStore.serviceState
+        updatingSwitch = true
+        binding.serviceIcon.setImageResource(
+            when (state) {
+                BaseService.State.Connecting -> R.drawable.ic_service_connecting
+                BaseService.State.Connected -> R.drawable.ic_service_connected
+                BaseService.State.Stopping -> R.drawable.ic_service_stopping
+                else -> R.drawable.ic_service_stopped
+            },
+        )
+        binding.serviceSummary.text =
+            getString(if (state.connected) R.string.lan_share_running else R.string.lan_share_stopped)
+        binding.switchService.isChecked = state.started
+        binding.switchService.isEnabled = state.canStop || state == BaseService.State.Stopped
         updatingSwitch = false
 
         binding.authSummary.text = if (DataStore.inboundAuth) {

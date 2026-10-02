@@ -1599,7 +1599,8 @@
     <string name="lan_share_settings">设置</string>
     <string name="lan_share_state_on">代理共享中</string>
     <string name="lan_share_state_off">共享已关闭</string>
-    <string name="lan_share_service_section">共享服务</string>
+    <string name="lan_share_service_section">局域网共享</string>
+    <string name="lan_share_proxy_service">代理服务</string>
     <string name="lan_share_clients_section">正在使用代理</string>
     <string name="lan_share_running">运行中</string>
     <string name="lan_share_stopped">已停止</string>

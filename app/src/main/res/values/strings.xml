@@ -1774,7 +1774,8 @@
     <string name="lan_share_settings">Settings</string>
     <string name="lan_share_state_on">Sharing on</string>
     <string name="lan_share_state_off">Sharing off</string>
-    <string name="lan_share_service_section">Sharing service</string>
+    <string name="lan_share_service_section">LAN sharing</string>
+    <string name="lan_share_proxy_service">Proxy service</string>
     <string name="lan_share_clients_section">Using the proxy now</string>
     <string name="lan_share_running">Running</string>
     <string name="lan_share_stopped">Stopped</string>
