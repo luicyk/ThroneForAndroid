@@ -52,7 +52,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
-                    android:textAppearance="?android:attr/textAppearanceLarge"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
                     android:textColor="?attr/colorPrimary" />
 
                 <TextView
@@ -61,7 +61,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:gravity="center"
-                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
                     android:textColor="?android:attr/textColorSecondary" />
             </LinearLayout>
 
@@ -81,9 +81,8 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/lan_share_service_section"
-                    android:textAppearance="?android:attr/textAppearanceMedium"
-                    android:textColor="?android:attr/textColorPrimary"
-                    android:textStyle="bold" />
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/preference_fallback_accent_color" />
             </LinearLayout>
 
             <!-- One card holding the switch, the two plans and the auth row, separated by dividers. -->
@@ -128,7 +127,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/lan_share_proxy_service"
-                            android:textAppearance="?android:attr/textAppearanceMedium"
+                            android:textAppearance="?android:attr/textAppearanceListItem"
                             android:textColor="?android:attr/textColorPrimary" />
 
                         <TextView
@@ -180,7 +179,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/allow_access"
-                            android:textAppearance="?android:attr/textAppearanceMedium"
+                            android:textAppearance="?android:attr/textAppearanceListItem"
                             android:textColor="?android:attr/textColorPrimary" />
 
                         <TextView
@@ -256,7 +255,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/cag_authentication"
-                            android:textAppearance="?android:attr/textAppearanceMedium"
+                            android:textAppearance="?android:attr/textAppearanceListItem"
                             android:textColor="?android:attr/textColorPrimary" />
 
                         <TextView
@@ -271,7 +270,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/lan_share_settings"
-                        android:textAppearance="?android:attr/textAppearanceMedium"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
                         android:textColor="?attr/colorPrimary" />
                 </LinearLayout>
             </LinearLayout>
@@ -308,7 +307,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:text="@string/port_proxy"
-                        android:textAppearance="?android:attr/textAppearanceMedium"
+                        android:textAppearance="?android:attr/textAppearanceListItem"
                         android:textColor="?android:attr/textColorPrimary" />
 
                     <EditText
@@ -321,7 +320,7 @@
                         android:importantForAutofill="no"
                         android:inputType="number"
                         android:maxLength="5"
-                        android:textAppearance="?android:attr/textAppearanceMedium"
+                        android:textAppearance="?android:attr/textAppearanceListItem"
                         android:textColor="?android:attr/textColorPrimary" />
                 </LinearLayout>
 
@@ -354,7 +353,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/random_inbound_port"
-                            android:textAppearance="?android:attr/textAppearanceMedium"
+                            android:textAppearance="?android:attr/textAppearanceListItem"
                             android:textColor="?android:attr/textColorPrimary" />
 
                         <TextView
@@ -408,7 +407,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="@string/custom_inbound"
-                            android:textAppearance="?android:attr/textAppearanceMedium"
+                            android:textAppearance="?android:attr/textAppearanceListItem"
                             android:textColor="?android:attr/textColorPrimary" />
 
                         <TextView
@@ -423,7 +422,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/lan_share_settings"
-                        android:textAppearance="?android:attr/textAppearanceMedium"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
                         android:textColor="?attr/colorPrimary" />
                 </LinearLayout>
             </LinearLayout>
@@ -445,15 +444,14 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/lan_share_clients_section"
-                    android:textAppearance="?android:attr/textAppearanceMedium"
-                    android:textColor="?android:attr/textColorPrimary"
-                    android:textStyle="bold" />
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/preference_fallback_accent_color" />
 
                 <TextView
                     android:id="@+id/clients_summary"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
                     android:textColor="?android:attr/textColorPrimary" />
 
                 <ImageButton
@@ -477,7 +475,7 @@
                 android:background="@drawable/lan_share_card"
                 android:padding="16dp"
                 android:text="@string/lan_share_clients_empty"
-                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="?android:attr/textColorSecondary" />
 
             <LinearLayout
