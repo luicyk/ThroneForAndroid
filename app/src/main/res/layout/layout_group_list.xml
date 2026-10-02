@@ -29,6 +29,22 @@
         app:tabTextColor="?tabTextColor"
         app:tabUnboundedRipple="false" />
 
+    <!-- The current tab's subscription figures. runtime_status already belongs to the test panel, so this is
+         a separate line rather than a second writer on that one. -->
+    <TextView
+        android:id="@+id/sub_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:paddingStart="16dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="6dp"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="?android:attr/textColorSecondary"
+        android:visibility="gone" />
+
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/group_progress"
         android:layout_width="match_parent"

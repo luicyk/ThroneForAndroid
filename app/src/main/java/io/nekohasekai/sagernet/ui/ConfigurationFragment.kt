@@ -1,5 +1,6 @@
 package io.nekohasekai.sagernet.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.KeyEvent
@@ -43,6 +44,7 @@ import io.nekohasekai.sagernet.ktx.dp2px
 import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.ktx.runOnMainDispatcher
+import io.nekohasekai.sagernet.ui.profiles.GroupInfo
 import io.nekohasekai.sagernet.ui.profiles.GroupMenu
 import io.nekohasekai.sagernet.ui.profiles.ProfileImports
 import io.nekohasekai.sagernet.ui.profiles.ProfileItemMenu
@@ -134,6 +136,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
     private var mediator: TabLayoutMediator? = null
     private lateinit var groupProgress: View
     private lateinit var runtimeStatus: TextView
+    private lateinit var subInfo: TextView
     private lateinit var panelContainer: ViewGroup
     private var searchView: SearchView? = null
     private var testPanel: TestPanelController? = null
@@ -202,9 +205,11 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         pager = view.findViewById(R.id.group_pager)
         groupProgress = view.findViewById(R.id.group_progress)
         runtimeStatus = view.findViewById(R.id.runtime_status)
+        subInfo = view.findViewById(R.id.sub_info)
         panelContainer = view.findViewById(R.id.test_panel_container)
         tabLayout.applyInsetPadding(horizontal = true)
         runtimeStatus.applyInsetPadding(horizontal = true)
+        subInfo.applyInsetPadding(horizontal = true)
         // the panel keeps its content above the navigation bar, the stats bar and the FAB itself
         panelContainer.applyInsetMargin(horizontal = true)
         val config = resources.configuration
@@ -228,7 +233,16 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         applyGroups(GroupRepo.all(), initialGroupId())
         mediator = TabLayoutMediator(tabLayout, pager) { tab, position ->
             pagerAdapter.groups.getOrNull(position)?.let { tab.text = tabLabel(it) }
-            tab.view.setOnLongClickListener { true }
+            // A tap switches tabs, so the group's settings sit behind a long press. The group is looked up by
+            // position at press time: submit() replaces the whole list and update() swaps single entries, so a
+            // captured instance would go stale.
+            tab.view.setOnLongClickListener {
+                val group = pagerAdapter.groups.getOrNull(position) ?: return@setOnLongClickListener true
+                startActivity(Intent(requireContext(), GroupSettingsActivity::class.java).apply {
+                    putExtra(GroupSettingsActivity.EXTRA_GROUP_ID, group.id)
+                })
+                true
+            }
         }.also { it.attach() }
         pager.registerOnPageChangeCallback(pageCallback)
         onPageShown()
@@ -434,8 +448,23 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         override fun onPageSelected(position: Int) = onPageShown()
     }
 
+    /** The current tab's subscription line: used, left and expiry, empty for a plain group. */
+    private fun updateSubInfo() {
+        if (!::subInfo.isInitialized) return
+        val group = currentGroup()
+        val text = if (group != null && group.isSubscription) {
+            GroupInfo.subInfo(requireContext(), group.info)
+        } else {
+            ""
+        }
+        subInfo.text = text
+        subInfo.isVisible = text.isNotEmpty()
+    }
+
     /** show_group: current_group follows the tab (the leaving tab stores its scroll row when it pauses). */
     private fun onPageShown() {
+        // Before the guard: a subscription refresh keeps the same tab but changes these figures.
+        updateSubInfo()
         val group = currentGroup() ?: return
         if (group.id == shownGroupId) return
         shownGroupId = group.id
@@ -486,6 +515,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
             if (!::pagerAdapter.isInitialized || view == null) return@onMainDispatcher
             val index = pagerAdapter.update(group)
             if (index >= 0) tabLayout.getTabAt(index)?.text = tabLabel(group)
+            if (pagerAdapter.indexOf(group.id) == pager.currentItem) updateSubInfo()
         }
     }
 
