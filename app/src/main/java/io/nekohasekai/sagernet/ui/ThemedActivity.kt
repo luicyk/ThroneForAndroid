@@ -1,6 +1,5 @@
 package io.nekohasekai.sagernet.ui
 
-import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.TextView
@@ -8,7 +7,6 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.graphics.ColorUtils
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.color.MaterialColors
@@ -28,7 +26,6 @@ abstract class ThemedActivity : AppCompatActivity {
     }
 
     var themeResId = 0
-    var uiMode = 0
     open val isDialog = false
 
     /** Dark status bar icons (a light toolbar colour). */
@@ -45,8 +42,6 @@ abstract class ThemedActivity : AppCompatActivity {
         if (!isDialog) enableEdgeToEdge(statusBarStyle(), navigationBarStyle())
 
         super.onCreate(savedInstanceState)
-
-        uiMode = resources.configuration.uiMode
     }
 
     /** Status bar icons in contrast to the toolbar colour (dark icons on light bars such as the white theme's). */
@@ -72,15 +67,6 @@ abstract class ThemedActivity : AppCompatActivity {
         super.setTheme(resId)
 
         themeResId = resId
-    }
-
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-
-        if (newConfig.uiMode != uiMode) {
-            uiMode = newConfig.uiMode
-            ActivityCompat.recreate(this)
-        }
     }
 
     fun snackbar(@StringRes resId: Int): Snackbar = snackbar("").setText(resId)
