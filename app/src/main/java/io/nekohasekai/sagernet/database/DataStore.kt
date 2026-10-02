@@ -102,6 +102,9 @@ object DataStore : OnPreferenceDataStoreChangeListener {
 
     // general
     var rememberEnable by SettingsRegistry.REMEMBER_ENABLE
+    /** The synthetic "All" tab in front of the real groups. */
+    var showAllGroup by SettingsRegistry.SHOW_ALL_GROUP
+
     var skipDeleteConfirmation by SettingsRegistry.SKIP_DELETE_CONFIRMATION
     var allowBetaUpdate by SettingsRegistry.ALLOW_BETA_UPDATE
 

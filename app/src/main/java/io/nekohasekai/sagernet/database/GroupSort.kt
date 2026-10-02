@@ -29,6 +29,11 @@ object GroupSort {
      * (the desktop's "A sort action is already in progress"). Reads the database: call it off the main thread.
      */
     suspend fun sortProfiles(groupId: Long, action: GroupSortAction): Boolean {
+        if (groupId == ALL_GROUPS_ID) {
+            // user_order lives inside a group, so sorting "All" means sorting each group on its own.
+            for (id in GroupRepo.ids()) sortProfiles(id, action)
+            return true
+        }
         if (!running.add(groupId)) return false
         try {
             if (action.method == GroupSortMethod.RAW || action.method == GroupSortMethod.BY_ID) return true

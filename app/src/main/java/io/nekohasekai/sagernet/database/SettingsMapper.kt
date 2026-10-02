@@ -2,6 +2,8 @@ package io.nekohasekai.sagernet.database
 
 import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.SagerNet
+import io.nekohasekai.sagernet.ktx.app
+import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.outbound.BuildContext
 import io.nekohasekai.sagernet.outbound.Outbound
 import io.nekohasekai.sagernet.outbound.OutboundFactory
@@ -44,7 +46,10 @@ object SettingsMapper {
 
     /** The outbound layer's lookups into the database (autoselector.cpp:9-15 DisplayAddress); once per process. */
     fun installOutboundHooks() {
-        AutoSelector.groupNames = AutoSelector.GroupNames { gid -> SagerDatabase.groupDao.getById(gid)?.displayName() }
+        AutoSelector.groupNames = AutoSelector.GroupNames { gid ->
+            if (gid == ALL_GROUPS_ID) app.getString(R.string.group_all)
+            else SagerDatabase.groupDao.getById(gid)?.displayName()
+        }
     }
 
     fun generatorSettings(): GeneratorSettings {
@@ -171,8 +176,15 @@ object SettingsMapper {
         }
 
         private fun load(gid: Long): SelectorGroup? {
-            val group = (if (gid > 0) SagerDatabase.groupDao.getById(gid) else null) ?: return null
-            val members = SagerDatabase.proxyDao.getByGroup(gid).map {
+            // The All tab has no `groups` row; it stands for every profile and owns no landing or front proxy.
+            val all = gid == ALL_GROUPS_ID
+            val group = when {
+                all -> ProxyGroup(ALL_GROUPS_ID, name = app.getString(R.string.group_all))
+                gid > 0 -> SagerDatabase.groupDao.getById(gid) ?: return null
+                else -> null
+            } ?: return null
+            val profiles = if (all) SagerDatabase.proxyDao.getAllInAllGroups() else SagerDatabase.proxyDao.getByGroup(gid)
+            val members = profiles.map {
                 SelectorMember(it.id, it.outbound, it.latency, it.latencyAt, it.testCountry.orEmpty())
             }
             val landing = group.landingProxyId.takeIf { it > 0 } ?: -1L

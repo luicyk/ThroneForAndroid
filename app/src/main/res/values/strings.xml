@@ -865,6 +865,9 @@
 
     <!-- groups and profiles: data layer -->
     <string name="group_default_name">Default</string>
+    <string name="group_all">All</string>
+    <string name="group_show_all">All groups tab</string>
+    <string name="group_show_all_sum">Put an "All" tab in front, listing the profiles of every group</string>
     <string name="group_archived">Archive</string>
     <string name="group_url_required">Please input URL</string>
     <string name="test_connect_ok">Connect OK</string>

@@ -3,6 +3,7 @@ package io.nekohasekai.sagernet.ui.profiles
 import androidx.annotation.PluralsRes
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.database.ALL_GROUPS_ID
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.GroupRepo
 import io.nekohasekai.sagernet.database.GroupSort
@@ -122,7 +123,12 @@ internal object GroupActions {
             host.getString(R.string.confirm_resolve_domains),
             host.getString(R.string.confirm_resolve_domains_message, group.displayName()),
             R.string.confirm_resolve,
-        ) { groupAction(host, group.id, "resolve_domains") }
+    ) {
+        // SubscriptionClient.groupAction takes a real group, so the All tab asks once per group.
+        for (id in if (group.id == ALL_GROUPS_ID) GroupRepo.ids() else listOf(group.id)) {
+            groupAction(host, id, "resolve_domains")
+        }
+    }
     }
 
     private fun groupAction(host: ConfigurationFragment, groupId: Long, action: String) {
@@ -187,6 +193,11 @@ internal object GroupActions {
         save: ((ProxyGroup) -> Unit)? = null,
     ) {
         host.launchIo {
+            if (groupId == ALL_GROUPS_ID) {
+                // Every field a sort can save (type_sort_by, test_sort_by, traffic_sort_by) is a group column.
+                for (id in GroupRepo.ids()) sort(host, id, method, descending, save)
+                return@launchIo
+            }
             if (save != null) GroupFields.update(groupId, save)?.let { GroupRepo.postUpdate(it) }
             if (!GroupSort.sortProfiles(groupId, GroupSortAction(method, descending))) {
                 host.onUi { snackbar(R.string.profiles_sort_busy).show() }
@@ -203,7 +214,10 @@ internal object GroupActions {
             else -> TestShowItems.NONE
         }.value
         host.launchIo {
-            GroupFields.update(groupId) { it.testItemsToShow = value }?.let { GroupRepo.postUpdate(it) }
+            // testItemsToShow is a group column, so the All tab writes it to every group.
+            for (id in if (groupId == ALL_GROUPS_ID) GroupRepo.ids() else listOf(groupId)) {
+                GroupFields.update(id) { it.testItemsToShow = value }?.let { GroupRepo.postUpdate(it) }
+            }
         }
     }
 

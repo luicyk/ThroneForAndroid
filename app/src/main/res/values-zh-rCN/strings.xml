@@ -709,7 +709,9 @@
     <string name="fragment_size">大小（最小-最大）</string>
     <string name="fragment_sleep">休眠（最小-最大，毫秒）</string>
     <string name="group_archived">归档</string>
-    <string name="group_default_name">默认</string>
+    <string name="group_all">全部</string>
+    <string name="group_show_all">全部分组标签</string>
+    <string name="group_show_all_sum">在分组列表最前面加一个「全部」标签，显示所有分组的节点</string>
     <string name="group_url_required">请输入 URL</string>
     <string name="grp_add_profiles_to_group">向此分组添加配置</string>
     <string name="grp_add_subscription">添加订阅</string>

@@ -15,6 +15,7 @@ import io.nekohasekai.sagernet.Action
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.bg.autoselector.AutoSelectorProfiles
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.database.ALL_GROUPS_ID
 import io.nekohasekai.sagernet.database.GroupRepo
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.SettingsMapper
@@ -167,7 +168,7 @@ class AutoSelectorSettingsActivity : BindingSettingsActivity<AutoSelector>() {
         val store = DataStore.profileCacheStore
         if (store.getString("name").isNullOrBlank()) return getString(R.string.autosel_name_empty)
         val gid = store.getString("gid")?.trim()?.toLongOrNull() ?: 0L
-        if (gid <= 0 || GroupRepo.get(gid) == null) return getString(R.string.autosel_select_group)
+        if ((gid == ALL_GROUPS_ID && !DataStore.showAllGroup) || gid <= 0 || GroupRepo.get(gid) == null) return getString(R.string.autosel_select_group)
         val filter = store.getString("nameFilter").orEmpty().trim()
         if (filter.isNotEmpty()) {
             try {
@@ -228,9 +229,10 @@ class AutoSelectorSettingsActivity : BindingSettingsActivity<AutoSelector>() {
     /** "Servers from": non-archived groups in tab order; a tracked group outside that list stays selectable. */
     private fun PreferenceFragmentCompat.setupGroups() {
         val menu = findPreference<SimpleMenuPreference>("gid") ?: return
-        val groups = GroupRepo.all()
-        var current = menu.value?.trim()?.toLongOrNull() ?: -1L
-        if (current <= 0) current = DataStore.editingGroup
+        val groups = GroupRepo.allForDisplay()
+        // 0 = nothing stored yet, which falls back to the group being edited; -1 is the All tab.
+        var current = menu.value?.trim()?.toLongOrNull() ?: 0L
+        if (current == 0L) current = DataStore.editingGroup
         val entries = ArrayList<CharSequence>()
         val values = ArrayList<CharSequence>()
         for (group in groups) {
@@ -238,13 +240,13 @@ class AutoSelectorSettingsActivity : BindingSettingsActivity<AutoSelector>() {
             entries.add(if (group.archive) getString(R.string.autosel_group_archived, group.displayName()) else group.displayName())
             values.add(group.id.toString())
         }
-        if (current > 0 && groups.none { it.id == current }) {
+        if (current != 0L && current != ALL_GROUPS_ID && groups.none { it.id == current }) {
             entries.add(getString(R.string.autosel_group_missing, current))
             values.add(current.toString())
         }
         menu.entries = entries.toTypedArray()
         menu.entryValues = values.toTypedArray()
-        if (current > 0) menu.value = current.toString()
+        if (current != 0L) menu.value = current.toString()
     }
 
     private fun PreferenceFragmentCompat.setupTexts() {

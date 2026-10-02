@@ -145,7 +145,9 @@ object SettingsRegistry {
     @JvmField val REMEMBER_ENABLE = bool("remember_enable", false)
     @JvmField val SKIP_DELETE_CONFIRMATION = bool("skip_delete_confirmation", false)
     /** The selected group tab; resolved through GroupRepo (0 or a missing group = the first group). */
-    @JvmField val CURRENT_GROUP = long("current_group", 0L) { it >= 0 }
+    @JvmField val CURRENT_GROUP = long("current_group", 0L) { it >= ALL_GROUPS_ID }
+    /** Show a synthetic "All" tab in front of the real groups; [GroupRepo.ALL_GROUPS_ID]. */
+    @JvmField val SHOW_ALL_GROUP = bool("show_all_group", false)
     @JvmField val SHOW_CONFIG_SECURITY = bool("show_config_security", false)
     @JvmField val ALLOW_BETA_UPDATE = bool("allow_beta_update", false)
 

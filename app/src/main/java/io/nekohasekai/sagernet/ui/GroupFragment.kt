@@ -15,9 +15,10 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.room.InvalidationTracker
+import com.google.android.material.switchmaterial.SwitchMaterial
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.SagerNet
-import io.nekohasekai.sagernet.ui.profiles.GroupInfo
 import io.nekohasekai.sagernet.database.GroupRepo
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.ProxyEntity
@@ -33,6 +34,7 @@ import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
 import io.nekohasekai.sagernet.ktx.showAllowingStateLoss
 import io.nekohasekai.sagernet.ktx.snackbar
 import io.nekohasekai.sagernet.ktx.startFilesForResult
+import io.nekohasekai.sagernet.ui.profiles.GroupInfo
 import io.nekohasekai.sagernet.widget.applyListInsets
 import io.nekohasekai.sagernet.widget.QRCodeDialog
 import kotlinx.coroutines.Dispatchers
@@ -87,6 +89,16 @@ class GroupFragment : ToolbarFragment(R.layout.layout_group), Toolbar.OnMenuItem
         toolbar?.inflateMenu(R.menu.add_group_menu)
         toolbar?.setOnMenuItemClickListener(this)
 
+        // The All tab lives in the tab strip only; this page lists real groups, so the switch is its only home.
+        val showAll = view.findViewById<SwitchMaterial>(R.id.switch_show_all)
+        showAll.isChecked = DataStore.showAllGroup
+        showAll.setOnCheckedChangeListener { _, checked ->
+            if (checked == DataStore.showAllGroup) return@setOnCheckedChangeListener
+            DataStore.showAllGroup = checked
+            lifecycleScope.launch {
+                GroupRepo.postAllGroupsVisibilityChanged()
+            }
+        }
         groupListView = view.findViewById(R.id.group_list)
         groupListView.applyListInsets()
         groupListView.layoutManager = FixedLinearLayoutManager(groupListView)

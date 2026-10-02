@@ -98,10 +98,12 @@ object ProfileManager {
     }
 
     /** The group's profile ids in list order (Group::Profiles). */
-    fun memberIds(groupId: Long): List<Long> = dao.getIdsByGroup(groupId)
+    fun memberIds(groupId: Long): List<Long> =
+        if (groupId == ALL_GROUPS_ID) dao.getAllIds() else dao.getIdsByGroup(groupId)
 
-    /** The group's profiles in list order. */
-    fun members(groupId: Long): List<ProxyEntity> = dao.getByGroup(groupId)
+    /** The group's profiles in list order; [ALL_GROUPS_ID] answers with every profile, in tab order. */
+    fun members(groupId: Long): List<ProxyEntity> =
+        if (groupId == ALL_GROUPS_ID) dao.getAllInAllGroups() else dao.getByGroup(groupId)
 
     /** The profile the service runs (the desktop's started_id), 0 when stopped. */
     fun runningProfileId(): Long = if (DataStore.serviceState.started) DataStore.currentProfile else 0L
@@ -241,6 +243,8 @@ object ProfileManager {
      * [ids] follow in their current order, ids of other groups are ignored.
      */
     suspend fun setOrder(groupId: Long, ids: List<Long>) {
+        // user_order is per group, so the All tab cannot be reordered as one list; GroupSort expands it.
+        if (groupId == ALL_GROUPS_ID) return
         SagerDatabase.instance.runInTransaction {
             val current = dao.getIdsByGroup(groupId)
             val members = current.toHashSet()
@@ -348,7 +352,7 @@ object ProfileManager {
     }
 
     fun clearGroupTestResults(groupId: Long) {
-        dao.clearGroupTestResults(groupId)
+        if (groupId == ALL_GROUPS_ID) dao.clearAllTestResults() else dao.clearGroupTestResults(groupId)
     }
 
     // ------------------------------------------------------------------------------------------------ listeners

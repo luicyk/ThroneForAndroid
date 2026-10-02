@@ -9,6 +9,7 @@ import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.aidl.TrafficData
 import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.database.DataStore
+import io.nekohasekai.sagernet.database.ALL_GROUPS_ID
 import io.nekohasekai.sagernet.database.GroupRepo
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.ProxyEntity
@@ -141,7 +142,10 @@ internal class ProfileListAdapter(private val fragment: ProfileListFragment) :
             do {
                 reloadAgain = false
                 val (loadedGroup, members) = withContext(Dispatchers.IO) {
-                    GroupRepo.get(groupId) to ProfileManager.members(groupId)
+                    // The All tab has no `groups` row and GroupRepo.get rejects the sentinel, so
+                    // ask for the synthetic one instead of bailing out below.
+                    val loaded = if (groupId == ALL_GROUPS_ID) GroupRepo.allGroup() else GroupRepo.get(groupId)
+                    loaded to ProfileManager.members(groupId)
                 }
                 // a removed group's page goes away with the tabs
                 if (loadedGroup == null) return@launch
@@ -272,7 +276,7 @@ internal class ProfileListAdapter(private val fragment: ProfileListFragment) :
             if (dragging) return@launch
             for (entity in fresh) {
                 val old = entities[entity.id] ?: continue
-                if (entity.groupId != groupId) continue
+                if (entity.groupId != groupId && groupId != ALL_GROUPS_ID) continue
                 if (old.rx > entity.rx) entity.rx = old.rx
                 if (old.tx > entity.tx) entity.tx = old.tx
                 if (old == entity) continue
@@ -415,7 +419,7 @@ internal class ProfileListAdapter(private val fragment: ProfileListFragment) :
     // ------------------------------------------------------------------------------------------------ listeners
 
     override suspend fun onAdd(profile: ProxyEntity) {
-        if (profile.groupId == groupId) fragment.onMain { reload() }
+        if (profile.groupId == groupId || groupId == ALL_GROUPS_ID) fragment.onMain { reload() }
     }
 
     override suspend fun onUpdated(data: List<TrafficData>) {
@@ -424,11 +428,11 @@ internal class ProfileListAdapter(private val fragment: ProfileListFragment) :
 
     override suspend fun onUpdated(profile: ProxyEntity, noTraffic: Boolean) {
         // noTraffic posts announce a selection change (handled by the screen), not new data
-        if (!noTraffic && profile.groupId == groupId) fragment.onMain { reload() }
+        if (!noTraffic && (profile.groupId == groupId || groupId == ALL_GROUPS_ID)) fragment.onMain { reload() }
     }
 
     override suspend fun onRemoved(groupId: Long, profileId: Long) {
-        if (groupId == this.groupId) fragment.onMain { reload() }
+        if (groupId == this.groupId || this.groupId == ALL_GROUPS_ID) fragment.onMain { reload() }
     }
 
     override suspend fun groupAdd(group: ProxyGroup) = Unit

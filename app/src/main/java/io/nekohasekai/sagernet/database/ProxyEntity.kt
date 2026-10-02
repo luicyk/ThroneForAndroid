@@ -279,6 +279,13 @@ data class ProxyEntity(
         @Query("SELECT * FROM `profiles`")
         fun getAll(): List<ProxyEntity>
 
+        /** The "All" tab ([ALL_GROUPS_ID]): every profile, in tab order, re-sorted within each group. */
+        @Query("SELECT `id` FROM `profiles` ORDER BY `gid`, `user_order`, `id`")
+        fun getAllIds(): List<Long>
+
+        @Query("SELECT * FROM `profiles` ORDER BY `gid`, `user_order`, `id`")
+        fun getAllInAllGroups(): List<ProxyEntity>
+
         @Query("SELECT `id` FROM `profiles` WHERE `gid` = :groupId ORDER BY `user_order`, `id`")
         fun getIdsByGroup(groupId: Long): List<Long>
 
@@ -363,6 +370,13 @@ data class ProxyEntity(
                 "`test_country` = NULL, `ip_out` = NULL, `test_error` = NULL WHERE `gid` = :groupId"
         )
         fun clearGroupTestResults(groupId: Long): Int
+
+        /** [ALL_GROUPS_ID]: the same columns as [clearGroupTestResults], for the "All" tab. */
+        @Query(
+            "UPDATE `profiles` SET `latency` = 0, `latency_at` = 0, `dl_speed` = NULL, `ul_speed` = NULL, " +
+                "`test_country` = NULL, `ip_out` = NULL, `test_error` = NULL"
+        )
+        fun clearAllTestResults(): Int
 
         @Insert
         fun addProxy(proxy: ProxyEntity): Long

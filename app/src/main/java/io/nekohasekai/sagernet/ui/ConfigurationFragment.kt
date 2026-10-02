@@ -33,6 +33,7 @@ import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.aidl.TrafficData
+import io.nekohasekai.sagernet.database.ALL_GROUPS_ID
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.GroupRepo
 import io.nekohasekai.sagernet.database.ProfileManager
@@ -230,7 +231,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         pagerAdapter = ProfilesPagerAdapter(this)
         pager.adapter = pagerAdapter
         pager.offscreenPageLimit = 2
-        applyGroups(GroupRepo.all(), initialGroupId())
+        applyGroups(GroupRepo.allForDisplay(), initialGroupId())
         mediator = TabLayoutMediator(tabLayout, pager) { tab, position ->
             pagerAdapter.groups.getOrNull(position)?.let { tab.text = tabLabel(it) }
             // A tap switches tabs, so the group's settings sit behind a long press. The group is looked up by
@@ -238,6 +239,8 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
             // captured instance would go stale.
             tab.view.setOnLongClickListener {
                 val group = pagerAdapter.groups.getOrNull(position) ?: return@setOnLongClickListener true
+                // The All tab is synthetic, so there is no row to edit.
+                if (group.id == ALL_GROUPS_ID) return@setOnLongClickListener true
                 startActivity(Intent(requireContext(), GroupSettingsActivity::class.java).apply {
                     putExtra(GroupSettingsActivity.EXTRA_GROUP_ID, group.id)
                 })
@@ -424,7 +427,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
     private fun reloadGroups(switchTo: Long = 0L) {
         val owner = viewLifecycleOwnerLiveData.value ?: return
         owner.lifecycleScope.launch {
-            val (groups, current) = withContext(Dispatchers.IO) { GroupRepo.all() to GroupRepo.currentId() }
+            val (groups, current) = withContext(Dispatchers.IO) { GroupRepo.allForDisplay() to GroupRepo.currentId() }
             val target = switchTo.takeIf { id -> groups.any { it.id == id } }
                 ?: currentGroupId.takeIf { id -> groups.any { it.id == id } }
                 ?: current
@@ -517,6 +520,10 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
             if (index >= 0) tabLayout.getTabAt(index)?.text = tabLabel(group)
             if (pagerAdapter.indexOf(group.id) == pager.currentItem) updateSubInfo()
         }
+    }
+
+    override suspend fun allGroupsVisibilityChanged() {
+        onMainDispatcher { reloadGroups() }
     }
 
     override suspend fun groupRemoved(groupId: Long) {
