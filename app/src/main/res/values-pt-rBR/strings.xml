@@ -1116,7 +1116,7 @@
     <string name="test_panel_stage_error">Falhou</string>
     <string name="test_panel_ping">ping %d ms</string>
     <string name="test_panel_progress_description">%1$d de %2$d prontos: %3$d funcionando, %4$d falharam</string>
-    <string name="test_panel_histogram_description">Latência: %1$d até 100 ms, %2$d até 300 ms, %3$d acima de 300 ms, %4$d falharam</string>
+    <string name="test_panel_histogram_description">%1$d até 300 ms, %2$d até 500 ms, %3$d acima de 800 ms, %4$d acima de 800 ms, %5$d falharam</string>
     <string name="test_panel_chart_description">Download %1$s, upload %2$s</string>
     <string name="test_panel_select_description">Selecionar %1$s, %2$s</string>
     <string name="test_panel_country_description">%1$s: %2$d</string>

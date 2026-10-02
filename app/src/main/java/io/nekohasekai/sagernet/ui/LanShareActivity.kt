@@ -169,7 +169,7 @@ commitPort()
 
         val portText = port.toString()
         binding.headlineState.text = getString(if (sharing) R.string.lan_share_state_on else R.string.lan_share_state_off)
-        binding.headlineDetail.text = getString(R.string.lan_share_headline_detail, port) + authSuffix()
+        binding.headlineDetail.text = getString(R.string.lan_share_headline_detail, port, authLabel())
 
         bindPlan(
             planA,
@@ -223,11 +223,11 @@ commitPort()
         plan.planHost.alpha = if (usable) 1f else 0.5f
     }
 
-    private fun authSuffix(): String {
-        val auth = getString(
-            if (DataStore.inboundAuth) R.string.lan_share_auth_on else R.string.lan_share_auth_off
-        )
-        return " · ${getString(R.string.lan_share_auth)} $auth"
+        /** The auth summary for the headline and the auth row; auth_on carries the user name, so it needs the argument. */
+    private fun authLabel(): String = if (DataStore.inboundAuth) {
+        getString(R.string.lan_share_auth_on, DataStore.inboundUser)
+    } else {
+        getString(R.string.lan_share_auth_off)
     }
 
     /** The wlan address, which is what a client on the same router dials; null until the first poll lands. */

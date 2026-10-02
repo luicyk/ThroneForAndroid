@@ -1,5 +1,6 @@
 package io.nekohasekai.sagernet.bg
 
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -527,7 +528,15 @@ class BaseService {
             return Service.START_NOT_STICKY
         }
 
-        /** Starts the selected profile; the notification and the receiver of a restart are reused. */
+        /**
+         * Starts the selected profile; the notification and the receiver of a restart are reused.
+         *
+         * The receiver is registered with `${applicationId}.SERVICE`, which the manifest declares as
+         * `protectionLevel="signature"`, so the broadcast is protected and Android 14 does not demand an export
+         * flag. The API 33 branch passes one anyway, and every sender uses `setPackage()`, which keeps the broadcast
+         * inside this app. UnspecifiedRegisterReceiverFlag only reads the overload, not the permission or the guard.
+         */
+        @SuppressLint("UnspecifiedRegisterReceiverFlag")
         fun startProxy() {
             DataStore.baseService = this
             val data = data

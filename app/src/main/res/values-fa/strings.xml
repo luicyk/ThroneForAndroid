@@ -1294,7 +1294,7 @@
     <string name="test_panel_failure_unreachable">سرویس آزمایش پاسخ نداد</string>
     <string name="test_panel_fastest">سریع‌ترین</string>
     <string name="test_panel_fastest_so_far">سریع‌ترین تاکنون</string>
-    <string name="test_panel_histogram_description">تأخیر: %1$d تا 100 ms، %2$d تا 300 ms، %3$d بیش از 300 ms، %4$d شکست</string>
+    <string name="test_panel_histogram_description">%1$d تا 300 ms، %2$d تا 500 ms، %3$d بیش از 800 ms، %4$d بیش از 800 ms، %5$d شکست</string>
     <string name="test_panel_hours_minutes">%1$d ساعت %2$d دقیقه</string>
     <string name="test_panel_kind_ip">IP و کشور</string>
     <string name="test_panel_kind_speed">آزمایش سرعت</string>

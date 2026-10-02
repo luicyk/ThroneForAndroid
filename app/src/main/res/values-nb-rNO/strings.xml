@@ -1120,7 +1120,7 @@
     <string name="test_panel_stage_error">Mislyktes</string>
     <string name="test_panel_ping">ping %d ms</string>
     <string name="test_panel_progress_description">%1$d av %2$d ferdig: %3$d fungerer, %4$d mislyktes</string>
-    <string name="test_panel_histogram_description">Forsinkelse: %1$d opptil 100 ms, %2$d opptil 300 ms, %3$d over 300 ms, %4$d mislyktes</string>
+    <string name="test_panel_histogram_description">%1$d opptil 300 ms, %2$d opptil 500 ms, %3$d over 800 ms, %4$d over 800 ms, %5$d mislyktes</string>
     <string name="test_panel_chart_description">Nedlasting %1$s, opplasting %2$s</string>
     <string name="test_panel_select_description">Velg %1$s, %2$s</string>
     <string name="test_panel_country_description">%1$s: %2$d</string>

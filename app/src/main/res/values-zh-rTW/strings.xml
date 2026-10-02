@@ -1285,7 +1285,7 @@
     <string name="test_panel_failure_unreachable">測試服務無響應</string>
     <string name="test_panel_fastest">最快</string>
     <string name="test_panel_fastest_so_far">目前最快</string>
-    <string name="test_panel_histogram_description">延遲：%1$d 個不超過 100 毫秒，%2$d 個不超過 300 毫秒，%3$d 個超過 300 毫秒，%4$d 個失敗</string>
+    <string name="test_panel_histogram_description">%1$d 個不超過 300 毫秒，%2$d 個不超過 500 毫秒，%3$d 個超過 800 毫秒，%4$d 個超過 800 毫秒，%5$d 個失敗</string>
     <string name="test_panel_hours_minutes">%1$d 小時 %2$d 分</string>
     <string name="test_panel_kind_ip">IP 與國家/地區</string>
     <string name="test_panel_kind_speed">速度測試</string>

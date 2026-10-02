@@ -1230,7 +1230,7 @@
     <string name="test_panel_failure_unreachable">Тестова служба не відповідає</string>
     <string name="test_panel_fastest">Найшвидший</string>
     <string name="test_panel_fastest_so_far">Найкращий наразі</string>
-    <string name="test_panel_histogram_description">Затримка: %1$d до 100 мс, %2$d до 300 мс, %3$d понад 300 мс, %4$d невдало</string>
+    <string name="test_panel_histogram_description">%1$d до 300 мс, %2$d до 500 мс, %3$d понад 800 мс, %4$d понад 800 мс, %5$d невдало</string>
     <string name="test_panel_hours_minutes">%1$d год %2$d хв</string>
     <string name="test_panel_kind_ip">IP і країна</string>
     <string name="test_panel_kind_speed">Тест швидкості</string>

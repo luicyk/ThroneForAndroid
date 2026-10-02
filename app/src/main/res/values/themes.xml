@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.SagerNet" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="actionBarStyle">@style/Widget.MaterialComponents.ActionBar.Solid</item>
@@ -113,7 +113,7 @@
         <item name="tabStyle">@style/Widget.SagerNet.TabLayout</item>
         <item name="dialogButtonColor">?attr/primaryOrTextPrimary</item>
 
-        <item name="android:dialogCornerRadius">@dimen/dialog_corner_radius</item>
+        <item name="android:dialogCornerRadius" tools:targetApi="28">@dimen/dialog_corner_radius</item>
 
         <item name="windowFixedHeightMajor" type="dimen">95%</item>
 

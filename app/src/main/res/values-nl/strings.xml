@@ -1116,7 +1116,7 @@
     <string name="test_panel_stage_error">Mislukt</string>
     <string name="test_panel_ping">ping %d ms</string>
     <string name="test_panel_progress_description">%1$d van %2$d klaar: %3$d werkend, %4$d mislukt</string>
-    <string name="test_panel_histogram_description">Latentie: %1$d tot 100 ms, %2$d tot 300 ms, %3$d boven 300 ms, %4$d mislukt</string>
+    <string name="test_panel_histogram_description">%1$d tot 300 ms, %2$d tot 500 ms, %3$d boven 800 ms, %4$d boven 800 ms, %5$d mislukt</string>
     <string name="test_panel_chart_description">Download %1$s, upload %2$s</string>
     <string name="test_panel_select_description">Selecteren %1$s, %2$s</string>
     <string name="test_panel_country_description">%1$s: %2$d</string>

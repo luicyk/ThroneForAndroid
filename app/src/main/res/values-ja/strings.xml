@@ -1266,7 +1266,7 @@
     <string name="test_panel_failure_unreachable">テストサービスが応答しません</string>
     <string name="test_panel_fastest">最速</string>
     <string name="test_panel_fastest_so_far">現在の最速</string>
-    <string name="test_panel_histogram_description">レイテンシ：%1$d 件が 100 ms 以下、%2$d 件が 300 ms 以下、%3$d 件が 300 ms 超、%4$d 件が失敗</string>
+    <string name="test_panel_histogram_description">%1$d 件が 300 ms 以下、%2$d 件が 500 ms 以下、%3$d 件が 800 ms 超、%4$d 件が 800 ms 超、%5$d 件が失敗</string>
     <string name="test_panel_hours_minutes">%1$d 時間 %2$d 分</string>
     <string name="test_panel_kind_ip">IP と国</string>
     <string name="test_panel_kind_speed">速度テスト</string>

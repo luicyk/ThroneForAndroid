@@ -1247,7 +1247,7 @@
     <string name="test_panel_failure_unreachable">لم يستجب خدمة الاختبار</string>
     <string name="test_panel_fastest">الأسرع</string>
     <string name="test_panel_fastest_so_far">الأسرع حتى الآن</string>
-    <string name="test_panel_histogram_description">زمن الاستجابة: %1$d حتى 100 مللي ثانية، %2$d حتى 300 مللي ثانية، %3$d أكثر من 300 مللي ثانية، %4$d فشل</string>
+    <string name="test_panel_histogram_description">%1$d حتى 300 مللي ثانية، %2$d حتى 500 مللي ثانية، %3$d أكثر من 800 مللي ثانية، %4$d أكثر من 800 مللي ثانية، %5$d فشل</string>
     <string name="test_panel_hours_minutes">%1$d ساعة %2$d دقيقة</string>
     <string name="test_panel_kind_ip">IP والبلد</string>
     <string name="test_panel_kind_speed">اختبار السرعة</string>

@@ -1215,7 +1215,7 @@
     <string name="test_panel_failure_unreachable">Сэрвіс тэсту не адказаў</string>
     <string name="test_panel_fastest">Найхутчэйшы</string>
     <string name="test_panel_fastest_so_far">Найхутчэйшы пакуль</string>
-    <string name="test_panel_histogram_description">Затрымка: %1$d да 100 мс, %2$d да 300 мс, %3$d больш за 300 мс, %4$d прайгравалі</string>
+    <string name="test_panel_histogram_description">%1$d да 300 мс, %2$d да 500 мс, %3$d больш за 800 мс, %4$d больш за 800 мс, %5$d прайгравалі</string>
     <string name="test_panel_hours_minutes">%1$d гадз %2$d хв</string>
     <string name="test_panel_kind_ip">IP і краіна</string>
     <string name="test_panel_kind_speed">Тэст хуткасці</string>
