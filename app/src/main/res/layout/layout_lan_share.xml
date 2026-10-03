@@ -427,65 +427,6 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Clients section -->
-            <LinearLayout
-                android:id="@+id/clients_header"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="24dp"
-                android:paddingEnd="16dp"
-                android:paddingBottom="6dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/lan_share_clients_section"
-                    android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="@color/preference_fallback_accent_color" />
-
-                <TextView
-                    android:id="@+id/clients_summary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?android:attr/textAppearanceSmall"
-                    android:textColor="?android:attr/textColorPrimary" />
-
-                <ImageButton
-                    android:id="@+id/refresh"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="8dp"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/lan_share_refresh"
-                    android:src="@drawable/ic_baseline_refresh_24"
-                    app:tint="?android:attr/textColorPrimary" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/clients_empty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginEnd="16dp"
-                android:background="@drawable/lan_share_card"
-                android:padding="16dp"
-                android:text="@string/lan_share_clients_empty"
-                android:textAppearance="?android:attr/textAppearanceSmall"
-                android:textColor="?android:attr/textColorSecondary" />
-
-            <LinearLayout
-                android:id="@+id/clients_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:background="@drawable/lan_share_card"
-                android:orientation="vertical" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

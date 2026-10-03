@@ -1597,13 +1597,11 @@
     <string name="lan_share_headline_detail">端口 %1$d · 认证：%2$s</string>
     <string name="lan_share_summary_off">共享已关闭</string>
     <string name="lan_share_summary_on">共享已开启，端口 %1$d</string>
-    <string name="lan_share_refresh">刷新</string>
     <string name="lan_share_settings">设置</string>
     <string name="lan_share_state_on">代理共享中</string>
     <string name="lan_share_state_off">共享已关闭</string>
     <string name="lan_share_service_section">局域网共享</string>
     <string name="lan_share_proxy_service">代理服务</string>
-    <string name="lan_share_clients_section">正在使用代理</string>
     <string name="lan_share_running">运行中</string>
     <string name="lan_share_stopped">已停止</string>
     <string name="lan_share_auth">认证</string>
@@ -1626,12 +1624,4 @@
     <string name="lan_share_copy_port">复制端口</string>
     <string name="lan_share_copied_host">已复制主机名</string>
     <string name="lan_share_copied_port">已复制端口</string>
-    <string name="lan_share_clients_empty">当前没有设备连接。</string>
-    <string name="lan_share_clients_unreadable">Android 不允许本应用读取连接表，无法显示已连接的设备。</string>
-    <string name="lan_share_clients_off">共享未开启，外部设备无法连接。</string>
-    <string name="lan_share_client_tag">局域网客户端</string>
-    <string name="lan_share_client_detail">%1$d 个活跃连接</string>
-    <plurals name="lan_share_clients_count">
-        <item quantity="other">%1$d 台设备正在使用</item>
-    </plurals>
 </resources>

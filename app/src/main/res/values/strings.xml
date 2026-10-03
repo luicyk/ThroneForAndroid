@@ -1773,13 +1773,11 @@
     <string name="lan_share_headline_detail">Port %1$d · Auth: %2$s</string>
     <string name="lan_share_summary_off">Sharing off</string>
     <string name="lan_share_summary_on">Sharing on, port %1$d</string>
-    <string name="lan_share_refresh">Refresh</string>
     <string name="lan_share_settings">Settings</string>
     <string name="lan_share_state_on">Sharing on</string>
     <string name="lan_share_state_off">Sharing off</string>
     <string name="lan_share_service_section">LAN sharing</string>
     <string name="lan_share_proxy_service">Proxy service</string>
-    <string name="lan_share_clients_section">Using the proxy now</string>
     <string name="lan_share_running">Running</string>
     <string name="lan_share_stopped">Stopped</string>
     <string name="lan_share_auth">Auth</string>
@@ -1802,13 +1800,4 @@
     <string name="lan_share_copy_port">Copy port</string>
     <string name="lan_share_copied_host">Host copied</string>
     <string name="lan_share_copied_port">Port copied</string>
-    <string name="lan_share_clients_empty">No client is connected right now.</string>
-    <string name="lan_share_clients_unreadable">Android does not let this app read the connection table, so who is connected cannot be shown.</string>
-    <string name="lan_share_clients_off">Sharing is off, so nothing can connect.</string>
-    <string name="lan_share_client_tag">LAN client</string>
-    <string name="lan_share_client_detail">%1$d active connections</string>
-    <plurals name="lan_share_clients_count">
-        <item quantity="one">%1$d device</item>
-        <item quantity="other">%1$d devices</item>
-    </plurals>
 </resources>

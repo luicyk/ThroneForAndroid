@@ -5,9 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
 import android.widget.LinearLayout
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
@@ -21,7 +18,6 @@ import io.nekohasekai.sagernet.outbound.json.JsonInput
 import io.nekohasekai.sagernet.database.SettingValidators
 import io.nekohasekai.sagernet.database.SettingsRegistry
 import io.nekohasekai.sagernet.databinding.LayoutLanShareBinding
-import io.nekohasekai.sagernet.databinding.LayoutLanShareClientBinding
 import io.nekohasekai.sagernet.databinding.LayoutLanSharePlanBinding
 import io.nekohasekai.sagernet.utils.LanClients
 import io.nekohasekai.sagernet.ui.json.JsonEditorActivity
@@ -41,14 +37,16 @@ import kotlinx.coroutines.withContext
  * so [LanClients.hotspot] has to infer it; that function's comment says what it can and cannot tell, and why "off" is
  * only reported once something has actually answered.
  *
- * The client list reads /proc/net/tcp rather than the core: [io.nekohasekai.sagernet.aidl.ISagerNetService] only reports
- * traffic per profile. That table gives addresses and connection counts, not byte totals, so the rows carry no rates.
- * When the table is unreadable the screen says so instead of reporting no clients.
+ * There is no client list here. Showing who is connected needs a source that names the remote address of every
+ * connection the phone accepts, and nothing available to this app provides one: the kernel's connection table is
+ * refused to apps outright, and the core does not report it either. A row saying "no client is connected" would be a
+ * claim the screen cannot support, so the section was taken out rather than left asserting nothing useful.
  */
 class LanShareActivity : ThemedActivity() {
 
     companion object {
-        private const val CLIENT_REFRESH_MS = 3_000L
+        /** How often the hotspot state and the wlan address are re-read while the screen is up. */
+        private const val STATUS_POLL_MS = 3_000L
 
         fun intent(context: Context): Intent = Intent(context, LanShareActivity::class.java)
     }
@@ -115,7 +113,6 @@ class LanShareActivity : ThemedActivity() {
         planA.copyPort.setOnClickListener { copy(getString(R.string.lan_share_copied_port), planA.planPort.text.toString()) }
         planB.copyHost.setOnClickListener { copy(getString(R.string.lan_share_copied_host), planB.planHost.text.toString()) }
         planB.copyPort.setOnClickListener { copy(getString(R.string.lan_share_copied_port), planB.planPort.text.toString()) }
-        binding.refresh.setOnClickListener { refreshClients() }
         binding.authRow.setOnClickListener { openAuthSettings() }
 binding.customInboundRow.setOnClickListener { openCustomInbound() }
         // The row carries the label and the summary, so the whole strip is the switch target.
@@ -136,33 +133,18 @@ commitPort()
 }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.lan_share_menu, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.lan_share_refresh -> {
-                refreshClients()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-
     override fun onResume() {
         super.onResume()
         render()
-        // Poll while the screen is up: there is no callback for another device opening a connection.
+        // Poll while the screen is up: nothing calls back when the hotspot is switched or the network changes.
         lifecycleScope.launch {
             while (isActive) {
                 // A random port is only drawn once the service rebuilds its config (BoxInstance.buildConfig),
                 // which happens after reloadService has been through a broadcast. Pick it up on the next tick
                 // rather than leaving a stale port on screen until the user leaves and comes back.
                 if (portShown != DataStore.inboundSocksPort && !binding.portInput.hasFocus()) render()
-                refreshClients()
-                delay(CLIENT_REFRESH_MS)
+                refreshStatus()
+                delay(STATUS_POLL_MS)
             }
         }
     }
@@ -237,11 +219,6 @@ commitPort()
                 ?: getString(R.string.lan_share_wifi_unknown),
             badgeActive = wifiAddress != null,
         )
-
-        binding.clientsEmpty.isVisible = false
-        binding.clientsContainer.isVisible = false
-        binding.clientsHeader.isVisible = sharing
-        binding.refresh.isEnabled = sharing
     }
 
     /** The Plan A badge, which is the hotspot state of the last poll rather than a fixed "unknown". */
@@ -286,53 +263,20 @@ commitPort()
     /** The wlan address, which is what a client on the same router dials; null until the first poll lands. */
     private var wifiAddress: String? = null
 
-    private fun refreshClients() {
-        if (!DataStore.allowLanAccess) {
-            binding.clientsContainer.removeAllViews()
-            binding.clientsEmpty.isVisible = true
-            binding.clientsEmpty.setText(R.string.lan_share_clients_off)
-            binding.clientsSummary.text = ""
-            return
-        }
+    /**
+     * Re-reads the two things on this screen that the OS will not call back about: whether the hotspot is on, and
+     * which address the wlan interface holds. Both walk NetworkInterface, so both are blocking and go to IO together.
+     */
+    private fun refreshStatus() {
         lifecycleScope.launch {
-            // Three things to read off the interfaces, all cheap and all blocking, so they go to IO together.
             val wlan = withContext(Dispatchers.IO) { wlanAddress() }
             val spot = withContext(Dispatchers.IO) { LanClients.hotspot(this@LanShareActivity) }
             val ap = withContext(Dispatchers.IO) { LanClients.hotspotAddress() }
-            val changed = spot != hotspot || ap != hotspotAddress
+            val changed = spot != hotspot || ap != hotspotAddress || wlan != wifiAddress
             wifiAddress = wlan
             hotspot = spot
             hotspotAddress = ap
             if (changed) render()
-            val port = DataStore.inboundSocksPort
-            when (val table = withContext(Dispatchers.IO) { LanClients.sample(port) }) {
-                // An unreadable table says nothing about who is connected, and saying "no client is connected" would
-                // be a claim the screen cannot support.
-                is LanClients.Table.UNREADABLE -> {
-                    binding.clientsContainer.removeAllViews()
-                    binding.clientsContainer.isVisible = false
-                    binding.clientsEmpty.isVisible = true
-                    binding.clientsEmpty.setText(R.string.lan_share_clients_unreadable)
-                    binding.clientsSummary.text = ""
-                }
-                is LanClients.Table.Clients -> {
-                    val entries = table.entries
-                    if (entries.isEmpty()) {
-                        binding.clientsContainer.removeAllViews()
-                        binding.clientsContainer.isVisible = false
-                        binding.clientsEmpty.isVisible = true
-                        binding.clientsEmpty.setText(R.string.lan_share_clients_empty)
-                        binding.clientsSummary.text = ""
-                        return@launch
-                    }
-                    binding.clientsEmpty.isVisible = false
-                    binding.clientsContainer.isVisible = true
-                    binding.clientsSummary.text = resources.getQuantityString(
-                        R.plurals.lan_share_clients_count, entries.size, entries.size
-                    )
-                    renderClients(entries)
-                }
-            }
         }
     }
 
@@ -366,26 +310,6 @@ commitPort()
         }
         return false
     }
-
-    private fun renderClients(entries: Map<String, LanClients.Entry>) {
-        val container = binding.clientsContainer
-        // Reuse the rows instead of rebuilding: refreshing every few seconds must not flicker.
-        while (container.childCount > entries.size) container.removeViewAt(container.childCount - 1)
-        var index = 0
-        for (entry in entries.values) {
-            val row = if (index < container.childCount) {
-                LayoutLanShareClientBinding.bind(container.getChildAt(index))
-            } else {
-                LayoutLanShareClientBinding.bind(
-                    LayoutInflater.from(this).inflate(R.layout.layout_lan_share_client, container, false)
-                ).also { container.addView(it.root) }
-            }
-            row.clientAddress.text = entry.address
-            row.clientDetail.text = getString(R.string.lan_share_client_detail, entry.connections)
-            index++
-        }
-    }
-
     /** "empty" until the override carries at least one inbound, otherwise a short description of what it holds. */
     private fun customInboundSummary(): String {
         val raw = DataStore.customInbound.trim()
