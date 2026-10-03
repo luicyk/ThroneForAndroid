@@ -70,7 +70,7 @@ class LanShareActivity : ThemedActivity() {
      * and while there is none the Plan A host reads "no address" rather than a plausible-looking constant: AOSP hands
      * out 192.168.43.1, but the subnet is a carrier and vendor choice and this phone uses 10.32.206.x.
      */
-    private var hotspotAddress: java.net.Inet4Address? = null
+    private var hotspotAddress: Inet4Address? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -265,51 +265,21 @@ commitPort()
 
     /**
      * Re-reads the two things on this screen that the OS will not call back about: whether the hotspot is on, and
-     * which address the wlan interface holds. Both walk NetworkInterface, so both are blocking and go to IO together.
+     * which addresses the interfaces hold. One walk answers all of them, so the poll costs a single kernel round trip.
      */
     private fun refreshStatus() {
         lifecycleScope.launch {
-            val wlan = withContext(Dispatchers.IO) { wlanAddress() }
-            val spot = withContext(Dispatchers.IO) { LanClients.hotspot(this@LanShareActivity) }
-            val ap = withContext(Dispatchers.IO) { LanClients.hotspotAddress() }
-            val changed = spot != hotspot || ap != hotspotAddress || wlan != wifiAddress
-            wifiAddress = wlan
-            hotspot = spot
-            hotspotAddress = ap
+            val snapshot = withContext(Dispatchers.IO) { LanClients.snapshot(this@LanShareActivity) }
+            val changed = snapshot.hotspot != hotspot ||
+                snapshot.hotspotAddress != hotspotAddress ||
+                snapshot.wlanAddress != wifiAddress
+            hotspot = snapshot.hotspot
+            hotspotAddress = snapshot.hotspotAddress
+            wifiAddress = snapshot.wlanAddress
             if (changed) render()
         }
     }
 
-    /**
-     * The address of the wlan interface when there is one, else the first shareable address.
-     *
-     * NetworkInterface.getInetAddresses() is an Enumeration, not a Collection, so membership is checked by walking it.
-     */
-    private fun wlanAddress(): String? {
-        val all = LanClients.shareableAddresses()
-        if (all.isEmpty()) return null
-        var wlan: Inet4Address? = null
-        var fallback: Inet4Address? = null
-        val nics = runCatching { java.net.NetworkInterface.getNetworkInterfaces() }.getOrNull()
-            ?: return all.first().hostAddress
-        while (nics.hasMoreElements()) {
-            val nic = nics.nextElement()
-            val onThisNic = all.filter { address -> nic.hasAddress(address) }
-            if (onThisNic.isEmpty()) continue
-            if (fallback == null) fallback = onThisNic.first()
-            if (nic.name.startsWith("wlan") && wlan == null) wlan = onThisNic.first()
-        }
-        return (wlan ?: fallback ?: all.first()).hostAddress
-    }
-
-    /** [NetworkInterface.getInetAddresses] is an [Enumeration], so it has to be walked to test membership. */
-    private fun java.net.NetworkInterface.hasAddress(address: Inet4Address): Boolean {
-        val addresses: java.util.Enumeration<java.net.InetAddress> = getInetAddresses() ?: return false
-        while (addresses.hasMoreElements()) {
-            if (addresses.nextElement() == address) return true
-        }
-        return false
-    }
     /** "empty" until the override carries at least one inbound, otherwise a short description of what it holds. */
     private fun customInboundSummary(): String {
         val raw = DataStore.customInbound.trim()

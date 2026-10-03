@@ -2,50 +2,111 @@ package io.nekohasekai.sagernet.utils
 
 import android.content.Context
 import android.net.wifi.WifiManager
-import io.nekohasekai.sagernet.ktx.Logs
-import java.io.File
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.NetworkInterface
-import java.util.Locale
 
 /**
- * Who is using the shared proxy right now, read from the kernel's TCP table, and whether the phone is the hotspot.
+ * What the LAN screen needs to know about the phone's interfaces: whether the hotspot is on, what address a client
+ * dials to reach it, and what address the Wi-Fi side holds.
  *
- * The core reports traffic per profile, not per client ([ISagerNetServiceCallback.cbTrafficUpdate]), so the only way to
- * see a LAN client is to read /proc/net/tcp ourselves and keep the rows whose local port is the mixed inbound.
+ * This used to also answer "who is connected", by reading /proc/net/tcp. It cannot: the file carries
+ * proc_net_tcp_udp and an enforcing policy refuses it to apps, and /proc/net/arp, /proc/net/dev and
+ * /proc/net/route are refused the same way. There is no public API behind them either. That question is why
+ * the client list was taken off the screen rather than relabelled - see LanShareActivity.
  *
- * What that table gives per socket is the remote address, the state, and the two queue depths. The queue depths are
- * not running byte totals, so there is no per-client speed to be had from here: differencing them yields numbers that
- * only look like speeds. What it does give truthfully is how many established sockets each client holds. Getting real
- * per-client byte counts means asking the core, which tracks every inbound connection, rather than reading this file.
- *
- * Three limits on the address list worth knowing:
- *
- *  - TCP only. SOCKS5 UDP associate traffic is not in the table, so a UDP-only client shows no connections.
- *  - The table is host-wide, so the count is every socket on that port rather than what a specific client opened.
- *  - /proc/net/tcp is denied to apps outright on some Android builds, and there is no fallback for it. [sample] then
- *    reports [Table.UNREADABLE] rather than an empty list, so the screen can say the table is out of reach instead of
- *    claiming that nobody is connected.
+ * What is left has no API either, but it has a fallback that works: WifiManager.getWifiApState is hidden yet
+ * still on the compatibility list, and the hotspot interface shows up when the hotspot is on. Nothing else in
+ * the system will say whether the hotspot is on.
  */
 object LanClients {
 
-    /** One client's state at a point in time. */
-    class Entry(
-        /** Dotted-quad of the client's address. */
-        val address: String,
-        /** Established sockets seen on the inbound port. */
-        val connections: Int,
+    /** Whether the phone is handing out addresses to other devices. */
+    enum class Hotspot { ON, OFF, UNKNOWN }
+
+    /** WifiManager.WIFI_AP_STATE_ENABLED. */
+    private const val AP_STATE_ENABLED = 13
+
+    /** Android's default hotspot gateway. Kept only as documentation: no code path should dial it (see [hotspotAddress]). */
+    const val HOTSPOT_GATEWAY = "192.168.43.1"
+
+    /**
+     * The three answers, from one walk of the interfaces.
+     *
+     * They used to be asked separately and each asked the platform on its own: getNetworkInterfaces() is a kernel
+     * round trip rather than a cached getter, so four of them a poll cost 0.53% of a core for a screen the user
+     * might have walked away from.
+     */
+    class Snapshot(
+        val hotspot: Hotspot,
+        /** The hotspot interface's own address; null when there is no hotspot interface up. */
+        val hotspotAddress: Inet4Address?,
+        /** The address a client on the same router dials; null when no interface holds a shareable address. */
+        val wlanAddress: String?,
     )
 
-    /** What one read of the table found. */
-    sealed class Table {
-        /** Rows keyed by client address, in the order the table listed them. */
-        class Clients(val entries: Map<String, Entry>) : Table()
+    /** One walk of the interfaces, answering all three questions at once. */
+    fun snapshot(context: Context): Snapshot {
+        // Interface name -> its shareable IPv4 addresses, in the order the platform listed them. Loopback and
+        // link-local are left out: neither is an address another device can reach this phone on.
+        val byName = LinkedHashMap<String, MutableList<Inet4Address>>()
+        val nics = runCatching { NetworkInterface.getNetworkInterfaces() }.getOrNull()
+        while (nics != null && nics.hasMoreElements()) {
+            val nic = nics.nextElement()
+            if (!nic.isUp || nic.isLoopback) continue
+            val addresses: java.util.Enumeration<InetAddress> = runCatching { nic.inetAddresses }.getOrNull() ?: continue
+            while (addresses.hasMoreElements()) {
+                val address = addresses.nextElement()
+                if (address !is Inet4Address) continue
+                if (address.isLoopbackAddress || address.isLinkLocalAddress) continue
+                byName.getOrPut(nic.name) { ArrayList() }.add(address)
+            }
+        }
 
-        /** The table could not be read, which is not the same as there being no clients. */
-        object UNREADABLE : Table()
+        val apName = byName.keys.firstOrNull { isHotspotName(it) }
+        // "wlan1" upwards is the AP on a second radio rather than the Wi-Fi side, which is why isHotspotName claims
+        // those names and this lookup does not.
+        val wlanName = byName.keys.firstOrNull { it.startsWith("wlan") && it != "wlan0" }
+        val wlan = wlanName?.let { byName[it]?.firstOrNull() }
+            // No wlan interface at all: the first address any interface holds, which is what Plan B falls back to.
+            ?: byName.values.firstOrNull()?.firstOrNull()
+
+        return Snapshot(
+            hotspot = hotspotState(context, apName != null),
+            hotspotAddress = apName?.let { byName[it]?.firstOrNull() },
+            wlanAddress = wlan?.hostAddress,
+        )
     }
+
+    /**
+     * Whether the hotspot is on.
+     *
+     * No public API reports it: TetheringManager's callback wants TETHER_PRIVILEGED, and ConnectivityManager has no
+     * tethering accessor at all (checked against the platform's own stubs, not from memory). What is left is
+     * WifiManager.getWifiApState, hidden but still on the compatibility list and read by reflection; and the presence
+     * of the hotspot interface, which is a consequence of the hotspot being on rather than a statement about it.
+     *
+     * [Hotspot.OFF] is only reported when the reflective call answered with a state. A build that blocks it would
+     * otherwise read as "the hotspot is off" while it is on - the same class of mistake as reading a theme attribute
+     * and calling it what the screen shows. Without an answer, and with no hotspot interface either, the honest
+     * answer is [Hotspot.UNKNOWN].
+     */
+    fun hotspot(context: Context): Hotspot = hotspotState(context, hotspotInterface() != null)
+
+    private fun hotspotState(context: Context, interfacePresent: Boolean): Hotspot {
+        apState(context)?.let { return if (it == AP_STATE_ENABLED) Hotspot.ON else Hotspot.OFF }
+        return if (interfacePresent) Hotspot.ON else Hotspot.UNKNOWN
+    }
+
+    /**
+     * WifiManager.getWifiApState(), or null when the method is missing or the call is refused. Not cached: a vendor
+     * build that refuses it now may not on the next poll, and a wrong "unknown" costs one badge refresh.
+     */
+    private fun apState(context: Context): Int? = runCatching {
+        val wifi = context.applicationContext.getSystemService(WifiManager::class.java) ?: return null
+        val method = WifiManager::class.java.getMethod("getWifiApState")
+        method.invoke(wifi) as? Int
+    }.getOrNull()
 
     /**
      * The interface Android puts the hotspot on, or null when there is none up.
@@ -54,15 +115,14 @@ object LanClients {
      * on the naming conventions the hotspot has carried for years: ap0/ap1, swlan0 on Qualcomm, and wlan1 upwards on
      * devices that run the AP on the second radio. wlan0 is excluded because that is the Wi-Fi side, which is Plan B
      * and has an address of its own. A vendor that names it something else reads as no hotspot, which is why the
-     * reflective probe above is asked first.
+     * reflective probe is asked first.
      */
     fun hotspotInterface(): NetworkInterface? {
         val nics = runCatching { NetworkInterface.getNetworkInterfaces() }.getOrNull() ?: return null
         while (nics.hasMoreElements()) {
             val nic = nics.nextElement()
             if (!nic.isUp || nic.isLoopback) continue
-            if (!isHotspotName(nic.name)) continue
-            if (shareableAddress(nic) != null) return nic
+            if (isHotspotName(nic.name) && shareableAddress(nic) != null) return nic
         }
         return null
     }
@@ -75,8 +135,8 @@ object LanClients {
      *
      * AOSP hands out 192.168.43.1 and the phone holds that address, but the subnet is a carrier and vendor choice -
      * the phone this was written on runs its hotspot on 10.32.206.15/24 - so a constant here would be a wrong address
-     * to tell someone to type. Reading the interface gets the address this phone actually uses. Null when there is no
-     * hotspot interface up.
+     * to tell someone to type. Reading the interface gets the address this phone actually uses, and [HOTSPOT_GATEWAY]
+     * is never dialled. Null when there is no hotspot interface up.
      */
     fun hotspotAddress(): Inet4Address? = hotspotInterface()?.let { shareableAddress(it) }
 
@@ -88,99 +148,6 @@ object LanClients {
             if (address is Inet4Address && !address.isLoopbackAddress && !address.isLinkLocalAddress) return address
         }
         return null
-    }
-
-    /** Whether the phone is handing out addresses to other devices. */
-    enum class Hotspot { ON, OFF, UNKNOWN }
-
-    private val WHITESPACE = Regex("\\s+")
-
-    /** Reads the table once. [port] is the mixed inbound's port. */
-    fun sample(port: Int): Table {
-        val rows = readTable(port) ?: return Table.UNREADABLE
-        val result = LinkedHashMap<String, Entry>()
-        for ((address, connections) in rows) {
-            result[address] = Entry(address, connections)
-        }
-        return Table.Clients(result)
-    }
-
-    /**
-     * Whether the hotspot is on.
-     *
-     * No public API reports it: TetheringManager's callback wants TETHER_PRIVILEGED, and ConnectivityManager has no
-     * tethering accessor at all (checked against the platform's own stubs, not from memory). What is left is
-     * WifiManager.getWifiApState, hidden but still on the compatibility list and read by reflection, and the presence
-     * of the hotspot interface itself, which is a consequence of the hotspot being on rather than a statement about it.
-     *
-     * [Hotspot.OFF] is only reported when the reflective call actually answered with a state, because a build that
-     * blocks it would otherwise read as "the hotspot is off" while it is on - the same class of mistake as reading a
-     * theme attribute and calling it what the screen shows. Without an answer the honest answer is [Hotspot.UNKNOWN].
-     */
-    fun hotspot(context: Context): Hotspot {
-        apState(context)?.let { return if (it == AP_STATE_ENABLED) Hotspot.ON else Hotspot.OFF }
-        return if (hotspotInterface() != null) Hotspot.ON else Hotspot.UNKNOWN
-    }
-
-    /** WifiManager.WIFI_AP_STATE_ENABLED. */
-    private const val AP_STATE_ENABLED = 13
-
-    /**
-     * WifiManager.getWifiApState(), or null when the method is missing or the call is refused. The result is not cached:
-     * a vendor build that refuses it now may not on the next poll, and a wrong "unknown" costs one badge refresh.
-     */
-    private fun apState(context: Context): Int? = runCatching {
-        val wifi = context.applicationContext.getSystemService(WifiManager::class.java) ?: return null
-        val method = WifiManager::class.java.getMethod("getWifiApState")
-        method.invoke(wifi) as? Int
-    }.getOrNull()
-
-    /**
-     * /proc/net/tcp is hex, in columns: sl, the local address/port pair, the remote pair, st (01 = ESTABLISHED), the
-     * tx and rx queue depths as one hex:hex field, tr:tm->when, retrnsmt, uid, timeout, inode. Only the first four are
-     * read. A readable table always begins with its own "sl" header; some policies let the open succeed and the read
-     * return nothing, which without that check would be indistinguishable from an idle table. Null when unreadable.
-     */
-    private fun readTable(port: Int): Map<String, Int>? {
-        val text = try {
-            File("/proc/net/tcp").readText()
-        } catch (e: Throwable) {
-            // SecurityException under a policy that denies it, or the file is absent.
-            Logs.w("LanClients: /proc/net/tcp unreadable", e)
-            return null
-        }
-        if (!text.startsWith("sl")) {
-            Logs.w("LanClients: /proc/net/tcp carries no header row (${text.length} bytes)")
-            return null
-        }
-        val hexPort = String.format(Locale.ROOT, "%04X", port)
-        val result = LinkedHashMap<String, Int>()
-        for (line in text.lineSequence()) {
-            if (!line.startsWith(" ")) continue
-            val parts = line.trim().split(WHITESPACE)
-            if (parts.size < 4) continue
-            val local = parts[1].split(':')
-            val remote = parts[2].split(':')
-            if (local.size != 2 || remote.size != 2) continue
-            if (!local[1].equals(hexPort, ignoreCase = true)) continue
-            if (parts[3] != "01") continue
-            val address = decodeAddress(remote[0]) ?: continue
-            result[address] = (result[address] ?: 0) + 1
-        }
-        return result
-    }
-
-    /** /proc stores the address as little-endian hex; loopback and any-multicast are of no use to a client. */
-    private fun decodeAddress(hex: String): String? {
-        if (hex.length != 8) return null
-        val bytes = ByteArray(4)
-        for (i in 0 until 4) {
-            val pair = hex.substring(i * 2, i * 2 + 2)
-            bytes[3 - i] = pair.toInt(16).toByte()
-        }
-        val address = InetAddress.getByAddress(bytes) as? Inet4Address ?: return null
-        if (address.isAnyLocalAddress || address.isLoopbackAddress || address.isMulticastAddress) return null
-        return address.hostAddress
     }
 
     /**
