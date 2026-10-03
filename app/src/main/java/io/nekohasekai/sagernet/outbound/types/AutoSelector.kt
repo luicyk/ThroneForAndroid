@@ -11,7 +11,7 @@ import io.nekohasekai.sagernet.outbound.json.jsonObjectOf
 
 /**
  * autoSelector (include/configs/outbounds/autoselector.h, src/configs/outbounds/autoselector.cpp): a profile the
- * generator expands into the core `auto-selector` outbound over the members of the tracked group [gid]
+ * generator expands into the core `auto-selector` outbound over the members of the tracked groups [gids]
  * (outbound.config.AutoSelectorPlanner, ConfigGenerator). Profile and group ids are widened to Long for Room, like
  * [Chain.list]; they are local ids, so imports and restores remap them.
  */
@@ -23,6 +23,11 @@ class AutoSelector : Outbound("autoselector") {
      * Every tracked group in tab order; empty means just [gid]. Several groups contribute their members and, per the
      * decision recorded on this feature, no landing or front proxy: those are per-group settings with no single
      * answer for a set. The All tab ([ALL_GROUPS_ID]) already carries neither.
+     *
+     * [ALL_GROUPS_ID] is -1, the value [gid] also uses to mean "no group", so the two cannot be told apart by
+     * looking at [gid] alone. That is why this list is written to JSON whenever it has anything in it, rather than
+     * only when it holds more than one: a selector on the All tab alone would otherwise come back from its own JSON
+     * with nothing selected.
      */
     @JvmField var gids: List<Long> = emptyList()
 
@@ -87,7 +92,9 @@ class AutoSelector : Outbound("autoselector") {
 
     /** autoselector.cpp:9-15: the tracked group's name ("" until the app installs [groupNames]). */
     override fun displayAddress(): String {
-        if (gid < 0) return "no group"
+        // The All tab's id is -1, which is also what gid holds when nothing is tracked, so the selection decides
+        // which of the two this is rather than the id's sign.
+        if (gid < 0 && gids.isEmpty()) return "no group"
         val lookup = groupNames ?: return ""
         return lookup.nameOf(gid) ?: "missing group"
     }
@@ -105,6 +112,11 @@ class AutoSelector : Outbound("autoselector") {
         if (obj.contains("gid")) gid = longOr(obj["gid"], -1)
         if (obj.contains("gids")) {
             gids = obj.array("gids").mapNotNullTo(ArrayList()) { (it as? Number)?.toLong() }.distinct()
+        } else if (obj.contains("gid")) {
+            // A profile that names one group and no list tracks exactly that group. This has to happen here rather
+            // than in normalize(), because -1 is both ALL_GROUPS_ID and the value gid takes for "no group", leaving
+            // no sentinel that would tell those two apart after the fact.
+            gids = listOf(gid)
         }
         if (obj.contains("name_filter")) nameFilter = obj.string("name_filter")
         if (obj.contains("country_filter")) countryFilter = obj.string("country_filter")
@@ -143,8 +155,9 @@ class AutoSelector : Outbound("autoselector") {
         obj["name"] = name
         obj["type"] = "autoselector"
         obj["gid"] = gid
-        // Written only when there is more than the one group [gid] already names.
-        if (gids.size > 1) obj["gids"] = idArray(gids)
+        // Written whenever the selection holds anything, including a single group: gid alone cannot carry the All
+        // tab, whose id is the same -1 that gid uses for "no group".
+        if (gids.isNotEmpty()) obj["gids"] = idArray(gids)
         obj["name_filter"] = nameFilter
         obj["country_filter"] = countryFilter
         obj["exclude_unavailable"] = excludeUnavailable
@@ -181,9 +194,9 @@ class AutoSelector : Outbound("autoselector") {
 
     /** autoselector.h:140-167: clamps what a hand-edited profile could put out of range; runs before every plan. */
     fun normalize() {
-        // gids is the effective selection and gid only its head. Without this a single-group selector, whose
-        // JSON carries no gids key, would write an empty selection back to the editor on every open.
-        if (gids.isEmpty() && gid != -1L) gids = listOf(gid)
+        // gids is the effective selection and gid only its head. The reverse direction belongs to parseFromJson, not
+        // here: seeding from gid would need a "no group" sentinel, and the All tab's id is -1, the value gid already
+        // holds for exactly that.
         if (gids.isNotEmpty() && gid != gids.first()) gid = gids.first()
         if (poolCap < 1) poolCap = 1
         if (poolCap > MAX_POOL_CAP) poolCap = MAX_POOL_CAP
