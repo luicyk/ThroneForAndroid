@@ -1,5 +1,8 @@
 package io.nekohasekai.sagernet.utils
 
+import android.content.Context
+import android.net.wifi.WifiManager
+import io.nekohasekai.sagernet.ktx.Logs
 import java.io.File
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -7,96 +10,164 @@ import java.net.NetworkInterface
 import java.util.Locale
 
 /**
- * Who is using the shared proxy right now, read from the kernel's TCP table.
+ * Who is using the shared proxy right now, read from the kernel's TCP table, and whether the phone is the hotspot.
  *
  * The core reports traffic per profile, not per client ([ISagerNetServiceCallback.cbTrafficUpdate]), so the only way to
- * attribute bytes to a LAN client is to read /proc/net/tcp ourselves and keep the rows whose local port is the mixed
- * inbound. That has three limits worth knowing:
+ * see a LAN client is to read /proc/net/tcp ourselves and keep the rows whose local port is the mixed inbound.
+ *
+ * What that table gives per socket is the remote address, the state, and the two queue depths. The queue depths are
+ * not running byte totals, so there is no per-client speed to be had from here: differencing them yields numbers that
+ * only look like speeds. What it does give truthfully is how many established sockets each client holds. Getting real
+ * per-client byte counts means asking the core, which tracks every inbound connection, rather than reading this file.
+ *
+ * Three limits on the address list worth knowing:
  *
  *  - TCP only. SOCKS5 UDP associate traffic is not in the table, so a UDP-only client shows no connections.
  *  - The table is host-wide, so the count is every socket on that port rather than what a specific client opened.
- *  - /proc/net/tcp is unreadable for some SELinux policies, in which case [sample] returns null and the caller shows
- *    the device list without counters rather than failing.
- *
- * Speeds come from differencing two samples, so [rate] is only meaningful once two [sample] calls have been made.
+ *  - /proc/net/tcp is denied to apps outright on some Android builds, and there is no fallback for it. [sample] then
+ *    reports [Table.UNREADABLE] rather than an empty list, so the screen can say the table is out of reach instead of
+ *    claiming that nobody is connected.
  */
 object LanClients {
 
     /** One client's state at a point in time. */
     class Entry(
-        /** Dotted-quad or the scope-6 form for link-local v6. */
+        /** Dotted-quad of the client's address. */
         val address: String,
-        /** Sockets seen on the inbound port. */
+        /** Established sockets seen on the inbound port. */
         val connections: Int,
-        /** Bytes since the previous sample; null on the first one. */
-        val up: Long?,
-        val down: Long?,
     )
 
+    /** What one read of the table found. */
+    sealed class Table {
+        /** Rows keyed by client address, in the order the table listed them. */
+        class Clients(val entries: Map<String, Entry>) : Table()
+
+        /** The table could not be read, which is not the same as there being no clients. */
+        object UNREADABLE : Table()
+    }
+
     /**
-     * Reads the table once. [port] is the mixed inbound's port. Returns null when the table cannot be read, which is
-     * the caller's signal to drop the counters.
+     * The interface Android puts the hotspot on, or null when there is none up.
+     *
+     * There is no API that names it - dumpsys calls it "mApInterfaceName" from inside the platform - so it is matched
+     * on the naming conventions the hotspot has carried for years: ap0/ap1, swlan0 on Qualcomm, and wlan1 upwards on
+     * devices that run the AP on the second radio. wlan0 is excluded because that is the Wi-Fi side, which is Plan B
+     * and has an address of its own. A vendor that names it something else reads as no hotspot, which is why the
+     * reflective probe above is asked first.
      */
-    fun sample(port: Int): Map<String, Entry>? {
-        val table = readTable(port) ?: return null
-        // "rx" is what the client sent us (upload for them), "tx" is what we sent back (download).
-        val previous = lastSample
-        lastSample = table
-        val result = LinkedHashMap<String, Entry>()
-        for ((address, counters) in table) {
-            val before = previous?.get(address)
-            result[address] = Entry(
-                address = address,
-                connections = counters.connections,
-                up = counters.rx?.let { now -> before?.rx?.let { was -> now - was } },
-                down = counters.tx?.let { now -> before?.tx?.let { was -> now - was } },
-            )
+    fun hotspotInterface(): NetworkInterface? {
+        val nics = runCatching { NetworkInterface.getNetworkInterfaces() }.getOrNull() ?: return null
+        while (nics.hasMoreElements()) {
+            val nic = nics.nextElement()
+            if (!nic.isUp || nic.isLoopback) continue
+            if (!isHotspotName(nic.name)) continue
+            if (shareableAddress(nic) != null) return nic
         }
-        return result
+        return null
     }
 
-    private class Counter(var connections: Int = 0, var rx: Long? = null, var tx: Long? = null)
+    private fun isHotspotName(name: String): Boolean =
+        name.startsWith("ap") || name.startsWith("swlan") || (name.startsWith("wlan") && name != "wlan0")
 
-    private var lastSample: Map<String, Counter>? = null
+    /**
+     * The address a client dials while the phone is the hotspot: the hotspot interface's own.
+     *
+     * AOSP hands out 192.168.43.1 and the phone holds that address, but the subnet is a carrier and vendor choice -
+     * the phone this was written on runs its hotspot on 10.32.206.15/24 - so a constant here would be a wrong address
+     * to tell someone to type. Reading the interface gets the address this phone actually uses. Null when there is no
+     * hotspot interface up.
+     */
+    fun hotspotAddress(): Inet4Address? = hotspotInterface()?.let { shareableAddress(it) }
 
-    fun reset() {
-        lastSample = null
+    /** The first shareable IPv4 of [nic]; null when it holds none. */
+    private fun shareableAddress(nic: NetworkInterface): Inet4Address? {
+        val addresses: java.util.Enumeration<InetAddress> = runCatching { nic.inetAddresses }.getOrNull() ?: return null
+        while (addresses.hasMoreElements()) {
+            val address = addresses.nextElement()
+            if (address is Inet4Address && !address.isLoopbackAddress && !address.isLinkLocalAddress) return address
+        }
+        return null
+    }
+
+    /** Whether the phone is handing out addresses to other devices. */
+    enum class Hotspot { ON, OFF, UNKNOWN }
+
+    private val WHITESPACE = Regex("\\s+")
+
+    /** Reads the table once. [port] is the mixed inbound's port. */
+    fun sample(port: Int): Table {
+        val rows = readTable(port) ?: return Table.UNREADABLE
+        val result = LinkedHashMap<String, Entry>()
+        for ((address, connections) in rows) {
+            result[address] = Entry(address, connections)
+        }
+        return Table.Clients(result)
     }
 
     /**
-     * /proc/net/tcp is hex: the local address/port pair, the remote pair, then st (01 = ESTABLISHED), tx and rx queue
-     * sizes as hex. Rows are keyed by the remote address so a client's sockets collapse into one entry.
+     * Whether the hotspot is on.
+     *
+     * No public API reports it: TetheringManager's callback wants TETHER_PRIVILEGED, and ConnectivityManager has no
+     * tethering accessor at all (checked against the platform's own stubs, not from memory). What is left is
+     * WifiManager.getWifiApState, hidden but still on the compatibility list and read by reflection, and the presence
+     * of the hotspot interface itself, which is a consequence of the hotspot being on rather than a statement about it.
+     *
+     * [Hotspot.OFF] is only reported when the reflective call actually answered with a state, because a build that
+     * blocks it would otherwise read as "the hotspot is off" while it is on - the same class of mistake as reading a
+     * theme attribute and calling it what the screen shows. Without an answer the honest answer is [Hotspot.UNKNOWN].
      */
-    private fun readTable(port: Int): Map<String, Counter>? {
-        val lines = try {
-            File("/proc/net/tcp").useLines { it.filter { line -> line.startsWith("sl") || line.contains("  01 ") }.toList() }
+    fun hotspot(context: Context): Hotspot {
+        apState(context)?.let { return if (it == AP_STATE_ENABLED) Hotspot.ON else Hotspot.OFF }
+        return if (hotspotInterface() != null) Hotspot.ON else Hotspot.UNKNOWN
+    }
+
+    /** WifiManager.WIFI_AP_STATE_ENABLED. */
+    private const val AP_STATE_ENABLED = 13
+
+    /**
+     * WifiManager.getWifiApState(), or null when the method is missing or the call is refused. The result is not cached:
+     * a vendor build that refuses it now may not on the next poll, and a wrong "unknown" costs one badge refresh.
+     */
+    private fun apState(context: Context): Int? = runCatching {
+        val wifi = context.applicationContext.getSystemService(WifiManager::class.java) ?: return null
+        val method = WifiManager::class.java.getMethod("getWifiApState")
+        method.invoke(wifi) as? Int
+    }.getOrNull()
+
+    /**
+     * /proc/net/tcp is hex, in columns: sl, the local address/port pair, the remote pair, st (01 = ESTABLISHED), the
+     * tx and rx queue depths as one hex:hex field, tr:tm->when, retrnsmt, uid, timeout, inode. Only the first four are
+     * read. A readable table always begins with its own "sl" header; some policies let the open succeed and the read
+     * return nothing, which without that check would be indistinguishable from an idle table. Null when unreadable.
+     */
+    private fun readTable(port: Int): Map<String, Int>? {
+        val text = try {
+            File("/proc/net/tcp").readText()
         } catch (e: Throwable) {
-            // SecurityException on a locked-down SELinux policy, or the file is absent.
-            null
-        } ?: return null
+            // SecurityException under a policy that denies it, or the file is absent.
+            Logs.w("LanClients: /proc/net/tcp unreadable", e)
+            return null
+        }
+        if (!text.startsWith("sl")) {
+            Logs.w("LanClients: /proc/net/tcp carries no header row (${text.length} bytes)")
+            return null
+        }
         val hexPort = String.format(Locale.ROOT, "%04X", port)
-        val result = LinkedHashMap<String, Counter>()
-        for (line in lines) {
-            val parts = line.trim().split(Regex("\\s+"))
-            if (parts.size < 10) continue
+        val result = LinkedHashMap<String, Int>()
+        for (line in text.lineSequence()) {
+            if (!line.startsWith(" ")) continue
+            val parts = line.trim().split(WHITESPACE)
+            if (parts.size < 4) continue
             val local = parts[1].split(':')
             val remote = parts[2].split(':')
             if (local.size != 2 || remote.size != 2) continue
             if (!local[1].equals(hexPort, ignoreCase = true)) continue
             if (parts[3] != "01") continue
             val address = decodeAddress(remote[0]) ?: continue
-            val counter = result.getOrPut(address) { Counter() }
-            counter.connections++
-            counter.tx = parseHex(parts[9])
-            counter.rx = parseHex(parts[10])
+            result[address] = (result[address] ?: 0) + 1
         }
         return result
-    }
-
-    private fun parseHex(value: String): Long? = try {
-        value.toLong(16)
-    } catch (e: NumberFormatException) {
-        null
     }
 
     /** /proc stores the address as little-endian hex; loopback and any-multicast are of no use to a client. */

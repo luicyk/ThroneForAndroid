@@ -1787,10 +1787,12 @@
     <string name="lan_share_auth_on">user %1$s</string>
     <string name="lan_share_inbound_summary">HTTP / SOCKS mixed inbound, bound to %1$s</string>
     <string name="lan_share_plan_a">Plan A: share the hotspot</string>
-    <string name="lan_share_plan_a_note">When the phone runs the hotspot, clients dial the phone itself. Most Android versions give it %1$s once the hotspot is on.</string>
+    <string name="lan_share_plan_a_note">When the phone runs the hotspot, clients dial the phone itself at the address above.</string>
     <string name="lan_share_plan_b">Plan B: same Wi-Fi</string>
     <string name="lan_share_plan_b_note">Use this when both devices are on the same home or office router.</string>
     <string name="lan_share_hotspot_unknown">Hotspot state unknown</string>
+    <string name="lan_share_hotspot_on">Hotspot on</string>
+    <string name="lan_share_hotspot_off">Hotspot off</string>
     <string name="lan_share_wifi_connected">Wi-Fi connected</string>
     <string name="lan_share_wifi_unknown">Wi-Fi address unknown</string>
     <string name="lan_share_no_address">No address</string>
@@ -1801,6 +1803,8 @@
     <string name="lan_share_copied_host">Host copied</string>
     <string name="lan_share_copied_port">Port copied</string>
     <string name="lan_share_clients_empty">No client is connected right now.</string>
+    <string name="lan_share_clients_unreadable">Android does not let this app read the connection table, so who is connected cannot be shown.</string>
+    <string name="lan_share_clients_off">Sharing is off, so nothing can connect.</string>
     <string name="lan_share_client_tag">LAN client</string>
     <string name="lan_share_client_detail">%1$d active connections</string>
     <plurals name="lan_share_clients_count">

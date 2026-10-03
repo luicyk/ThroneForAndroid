@@ -1611,10 +1611,12 @@
     <string name="lan_share_auth_on">账号 %1$s</string>
     <string name="lan_share_inbound_summary">HTTP / SOCKS 混合入站，绑定 %1$s</string>
     <string name="lan_share_plan_a">方案 A：手机热点共享</string>
-    <string name="lan_share_plan_a_note">手机开热点时，其他设备直接连接手机本身。开启热点后网关通常为 %1$s。</string>
+    <string name="lan_share_plan_a_note">手机开热点时，其他设备直接连接上面那个地址的手机本身。</string>
     <string name="lan_share_plan_b">方案 B：同 Wi-Fi 共享</string>
     <string name="lan_share_plan_b_note">两台设备连接同一个家庭/公司 Wi-Fi 路由器时使用。</string>
     <string name="lan_share_hotspot_unknown">热点状态未知</string>
+    <string name="lan_share_hotspot_on">热点已开启</string>
+    <string name="lan_share_hotspot_off">热点未开启</string>
     <string name="lan_share_wifi_connected">Wi-Fi 已连接</string>
     <string name="lan_share_wifi_unknown">Wi-Fi 地址未知</string>
     <string name="lan_share_no_address">无地址</string>
@@ -1625,6 +1627,8 @@
     <string name="lan_share_copied_host">已复制主机名</string>
     <string name="lan_share_copied_port">已复制端口</string>
     <string name="lan_share_clients_empty">当前没有设备连接。</string>
+    <string name="lan_share_clients_unreadable">Android 不允许本应用读取连接表，无法显示已连接的设备。</string>
+    <string name="lan_share_clients_off">共享未开启，外部设备无法连接。</string>
     <string name="lan_share_client_tag">局域网客户端</string>
     <string name="lan_share_client_detail">%1$d 个活跃连接</string>
     <plurals name="lan_share_clients_count">

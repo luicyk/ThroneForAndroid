@@ -25,7 +25,6 @@ import io.nekohasekai.sagernet.databinding.LayoutLanShareClientBinding
 import io.nekohasekai.sagernet.databinding.LayoutLanSharePlanBinding
 import io.nekohasekai.sagernet.utils.LanClients
 import io.nekohasekai.sagernet.ui.json.JsonEditorActivity
-import io.nekohasekai.sagernet.ui.test.TestFormat
 import io.nekohasekai.sagernet.widget.applyInsetPadding
 import java.net.Inet4Address
 import kotlinx.coroutines.Dispatchers
@@ -37,20 +36,18 @@ import kotlinx.coroutines.withContext
 /**
  * LAN Sharing: the master switch, the two ways another device can reach this phone, and who is connected right now.
  *
- * Plan A is the hotspot case, where the phone hands out 192.168.43.1 and every client dials that; Plan B is the shared
- * Wi-Fi case, where the address is whatever the wlan interface holds. Android gives an app no way to learn whether the
- * hotspot is on (that needs TETHER_PRIVILEGED), so Plan A carries a note instead of a state chip.
+ * Plan A is the hotspot case, where every client dials the hotspot interface's own address; Plan B is the shared
+ * Wi-Fi case, where the address is whatever the wlan interface holds. No public API reports the hotspot state,
+ * so [LanClients.hotspot] has to infer it; that function's comment says what it can and cannot tell, and why "off" is
+ * only reported once something has actually answered.
  *
  * The client list reads /proc/net/tcp rather than the core: [io.nekohasekai.sagernet.aidl.ISagerNetService] only reports
- * traffic per profile. See [LanClients] for what that costs. When the table is unreadable the list degrades to the
- * addresses alone instead of failing.
+ * traffic per profile. That table gives addresses and connection counts, not byte totals, so the rows carry no rates.
+ * When the table is unreadable the screen says so instead of reporting no clients.
  */
 class LanShareActivity : ThemedActivity() {
 
     companion object {
-        /** Android's default hotspot gateway; the phone is the server when it is the hotspot. */
-        const val HOTSPOT_GATEWAY = "192.168.43.1"
-
         private const val CLIENT_REFRESH_MS = 3_000L
 
         fun intent(context: Context): Intent = Intent(context, LanShareActivity::class.java)
@@ -63,7 +60,19 @@ class LanShareActivity : ThemedActivity() {
 
     /** Set while [render] writes the switch, so the listener does not treat it as a user edit. */
     private var updatingSwitch = false
-    private var boundPort = -1
+
+    /** The port on screen, so a random port drawn by the service is noticed on the next tick. */
+    private var portShown = -1
+
+    /** The hotspot state of the last poll; null until one lands, which the badge reads as unknown. */
+    private var hotspot: LanClients.Hotspot? = null
+
+    /**
+     * The hotspot interface's own address, which is what a client on the hotspot dials. Null until a poll finds one,
+     * and while there is none the Plan A host reads "no address" rather than a plausible-looking constant: AOSP hands
+     * out 192.168.43.1, but the subnet is a carrier and vendor choice and this phone uses 10.32.206.x.
+     */
+    private var hotspotAddress: java.net.Inet4Address? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -151,7 +160,7 @@ commitPort()
                 // A random port is only drawn once the service rebuilds its config (BoxInstance.buildConfig),
                 // which happens after reloadService has been through a broadcast. Pick it up on the next tick
                 // rather than leaving a stale port on screen until the user leaves and comes back.
-                if (boundPort != DataStore.inboundSocksPort && !binding.portInput.hasFocus()) render()
+                if (portShown != DataStore.inboundSocksPort && !binding.portInput.hasFocus()) render()
                 refreshClients()
                 delay(CLIENT_REFRESH_MS)
             }
@@ -201,11 +210,7 @@ commitPort()
             getString(R.string.lan_share_auth_off)
         }
 
-        if (boundPort != port) {
-            // The counter differencing is per port; a new port invalidates the previous sample.
-            LanClients.reset()
-            boundPort = port
-        }
+        portShown = port
 
         val portText = port.toString()
         binding.headlineState.text = getString(if (sharing) R.string.lan_share_state_on else R.string.lan_share_state_off)
@@ -215,10 +220,11 @@ commitPort()
             planA,
             icon = R.drawable.ic_hardware_router,
             title = R.string.lan_share_plan_a,
-            note = getString(R.string.lan_share_plan_a_note, HOTSPOT_GATEWAY),
-            host = HOTSPOT_GATEWAY,
+            note = getString(R.string.lan_share_plan_a_note),
+            host = hotspotAddress?.hostAddress ?: getString(R.string.lan_share_no_address),
             port = portText,
-            badge = getString(R.string.lan_share_hotspot_unknown),
+            badge = hotspotLabel(),
+            badgeActive = hotspot == LanClients.Hotspot.ON,
         )
         bindPlan(
             planB,
@@ -236,6 +242,13 @@ commitPort()
         binding.clientsContainer.isVisible = false
         binding.clientsHeader.isVisible = sharing
         binding.refresh.isEnabled = sharing
+    }
+
+    /** The Plan A badge, which is the hotspot state of the last poll rather than a fixed "unknown". */
+    private fun hotspotLabel(): String = when (hotspot) {
+        LanClients.Hotspot.ON -> getString(R.string.lan_share_hotspot_on)
+        LanClients.Hotspot.OFF -> getString(R.string.lan_share_hotspot_off)
+        LanClients.Hotspot.UNKNOWN, null -> getString(R.string.lan_share_hotspot_unknown)
     }
 
     private fun bindPlan(
@@ -277,30 +290,49 @@ commitPort()
         if (!DataStore.allowLanAccess) {
             binding.clientsContainer.removeAllViews()
             binding.clientsEmpty.isVisible = true
+            binding.clientsEmpty.setText(R.string.lan_share_clients_off)
             binding.clientsSummary.text = ""
             return
         }
         lifecycleScope.launch {
+            // Three things to read off the interfaces, all cheap and all blocking, so they go to IO together.
             val wlan = withContext(Dispatchers.IO) { wlanAddress() }
-            if (wlan != wifiAddress) {
-                wifiAddress = wlan
-                if (wlan != null) render()
-            }
+            val spot = withContext(Dispatchers.IO) { LanClients.hotspot(this@LanShareActivity) }
+            val ap = withContext(Dispatchers.IO) { LanClients.hotspotAddress() }
+            val changed = spot != hotspot || ap != hotspotAddress
+            wifiAddress = wlan
+            hotspot = spot
+            hotspotAddress = ap
+            if (changed) render()
             val port = DataStore.inboundSocksPort
-            val entries = withContext(Dispatchers.IO) { LanClients.sample(port) }
-            if (entries.isNullOrEmpty()) {
-                binding.clientsContainer.removeAllViews()
-                binding.clientsContainer.isVisible = false
-                binding.clientsEmpty.isVisible = true
-                binding.clientsSummary.text = ""
-                return@launch
+            when (val table = withContext(Dispatchers.IO) { LanClients.sample(port) }) {
+                // An unreadable table says nothing about who is connected, and saying "no client is connected" would
+                // be a claim the screen cannot support.
+                is LanClients.Table.UNREADABLE -> {
+                    binding.clientsContainer.removeAllViews()
+                    binding.clientsContainer.isVisible = false
+                    binding.clientsEmpty.isVisible = true
+                    binding.clientsEmpty.setText(R.string.lan_share_clients_unreadable)
+                    binding.clientsSummary.text = ""
+                }
+                is LanClients.Table.Clients -> {
+                    val entries = table.entries
+                    if (entries.isEmpty()) {
+                        binding.clientsContainer.removeAllViews()
+                        binding.clientsContainer.isVisible = false
+                        binding.clientsEmpty.isVisible = true
+                        binding.clientsEmpty.setText(R.string.lan_share_clients_empty)
+                        binding.clientsSummary.text = ""
+                        return@launch
+                    }
+                    binding.clientsEmpty.isVisible = false
+                    binding.clientsContainer.isVisible = true
+                    binding.clientsSummary.text = resources.getQuantityString(
+                        R.plurals.lan_share_clients_count, entries.size, entries.size
+                    )
+                    renderClients(entries)
+                }
             }
-            binding.clientsEmpty.isVisible = false
-            binding.clientsContainer.isVisible = true
-            binding.clientsSummary.text = resources.getQuantityString(
-                R.plurals.lan_share_clients_count, entries.size, entries.size
-            )
-            renderClients(entries)
         }
     }
 
@@ -350,19 +382,8 @@ commitPort()
             }
             row.clientAddress.text = entry.address
             row.clientDetail.text = getString(R.string.lan_share_client_detail, entry.connections)
-            row.clientUp.text = "▲ " + formatRate(entry.up)
-            row.clientDown.text = "▼ " + formatRate(entry.down)
             index++
         }
-    }
-
-    /**
-     * Byte counts go through [TestFormat.bytes], which delegates to [android.text.format.Formatter] so the unit and
-     * the digits follow the device locale; the first sample has nothing to difference against.
-     */
-    private fun formatRate(bytes: Long?): String {
-        if (bytes == null || bytes < 0) return "-"
-        return TestFormat.bytes(this, bytes)
     }
 
     /** "empty" until the override carries at least one inbound, otherwise a short description of what it holds. */
@@ -388,7 +409,7 @@ commitPort()
         }
         if (port == DataStore.inboundSocksPort) return
         DataStore.inboundSocksPort = port
-        boundPort = -1
+        portShown = -1
         SagerNet.reloadService()
         render()
     }
